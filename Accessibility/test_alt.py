@@ -24,16 +24,39 @@ print("Focusing Word window...")
 window.set_focus()
 time.sleep(0.5)
 
-# ── Collect all shapes ────────────────────────────────────────────────────────
+# ── Collect all shapes (recursive) ───────────────────────────────────────────
+MSO_GROUP = 6
 MsoPictureTypes = {11, 13, 28, 29}
 
-all_shapes = []
-for shape in doc.InlineShapes:
-    all_shapes.append(("inline", shape))
-for shape in doc.Shapes:
-    if getattr(shape, "Type", None) in MsoPictureTypes:
-        all_shapes.append(("floating", shape))
+def collect_shapes(doc):
+    result = []
 
+    def add_inline(col):
+        for s in col:
+            result.append(("inline", s))
+
+    def add_floating(col):
+        for s in col:
+            t = getattr(s, "Type", None)
+            if t == MSO_GROUP:
+                try:
+                    add_floating(s.GroupItems)
+                except Exception:
+                    pass
+            elif t in MsoPictureTypes:
+                result.append(("floating", s))
+            # Images inside text boxes
+            try:
+                if s.HasTextFrame:
+                    add_inline(s.TextFrame.TextRange.InlineShapes)
+            except Exception:
+                pass
+
+    add_inline(doc.InlineShapes)
+    add_floating(doc.Shapes)
+    return result
+
+all_shapes = collect_shapes(doc)
 print(f"Found {len(all_shapes)} shapes.\n")
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -133,8 +156,8 @@ for i, (kind, shape) in enumerate(all_shapes):
     shape.Select()
     time.sleep(0.4)
 
-    # Wait for pane to catch up and show the Generate button for this shape
-    btn = wait_for_pane_button(["generate"])
+    # Wait for pane to catch up — short timeout since pane updates quickly
+    btn = wait_for_pane_button(["generate"], timeout=1.5)
     if btn is None:
         decorative_btn = find_pane_button(["decorative"])
         if decorative_btn:
