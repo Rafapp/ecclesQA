@@ -23,7 +23,7 @@ import time
 from pathlib import Path
 
 from .core import DocumentStats
-from . import alttext_local, alttext_word_cloud, metadata, headings
+from . import alttext_local, alttext_word_cloud, metadata, headings, doc_to_docx
 
 # ── Module registries ─────────────────────────────────────────────────────────
 
@@ -50,6 +50,11 @@ def iter_candidate_files(folder: Path) -> list[Path]:
 def process_document_local(path: Path, modules: list) -> DocumentStats:
     from docx import Document
 
+    if doc_to_docx.needs_conversion(path):
+        print(f'  Converting "{path.name}" to .docx...')
+        path = doc_to_docx.convert(path)
+        print(f'  -> "{path.name}"')
+
     stats = DocumentStats()
     doc = Document(str(path))
     ctx = {"path": path, "mode": "local"}
@@ -72,6 +77,11 @@ def process_document_cloud(path: Path, word, ui_app, modules: list) -> DocumentS
     stats = DocumentStats()
     doc = None
     success = False
+
+    if doc_to_docx.needs_conversion(path):
+        print(f'  Converting "{path.name}" to .docx...')
+        path = doc_to_docx.convert(path, word=word)
+        print(f'  -> "{path.name}"')
 
     print(f'  Opening "{path.name}" in Word...')
     try:
