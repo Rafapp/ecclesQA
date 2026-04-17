@@ -23,12 +23,12 @@ import time
 from pathlib import Path
 
 from .core import DocumentStats
-from . import alttext_local, alttext_word_cloud, metadata, headings, doc_to_docx
+from . import alttext_local, alttext_word_cloud, metadata, headings, table_headers, doc_to_docx
 
 # ── Module registries ─────────────────────────────────────────────────────────
 
-MODULES_LOCAL = [alttext_local, metadata, headings]
-MODULES_CLOUD = [alttext_word_cloud, metadata, headings]
+MODULES_LOCAL = [alttext_local, metadata, headings, table_headers]
+MODULES_CLOUD = [alttext_word_cloud, metadata, headings, table_headers]
 
 # ── File discovery ────────────────────────────────────────────────────────────
 
@@ -217,9 +217,10 @@ def main() -> int:
 def _print_stats(stats: DocumentStats) -> None:
     print(
         f"  title={stats.title_updated}  h1={stats.heading1_applied}  "
-        f"h2={stats.heading2_applied}  visuals={stats.visuals_seen}  "
-        f"generated={stats.alt_generated}  decorative={stats.alt_decorative}  "
-        f"present={stats.alt_already_present}  cleaned={stats.alt_cleaned}"
+        f"h2={stats.heading2_applied}  tables_headers={stats.tables_header_set}  "
+        f"visuals={stats.visuals_seen}  generated={stats.alt_generated}  "
+        f"decorative={stats.alt_decorative}  present={stats.alt_already_present}  "
+        f"cleaned={stats.alt_cleaned}"
     )
 
 

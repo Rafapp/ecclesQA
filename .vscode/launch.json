@@ -10,5 +10,25 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         }
+        ,
+        {
+            "name": "Run pptx accessibility",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "Accessibility.pptx",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        }
+        ,
+        {
+            "name": "Run xlsx accessibility",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "Accessibility.xlsx",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        }
     ]
 }

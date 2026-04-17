@@ -1,8 +1,8 @@
-"""Core data structures and shared utilities used across all docx modules."""
+"""Core data structures and shared utilities used across all pptx modules."""
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 AI_FOOTER_PATTERN = re.compile(
@@ -13,18 +13,25 @@ AI_FOOTER_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+BOILERPLATE_ALT_PATTERN = re.compile(
+    r"^(?:created with (?:microsoft\s+)?equation editor[\s\d.]*"
+    r"|equation"
+    r"|object\s+\d+"
+    r"|ole\s+object"
+    r"|image\s+\d+"
+    r"|picture\s+\d+)$",
+    re.IGNORECASE,
+)
+
 
 @dataclass
-class DocumentStats:
+class PresentationStats:
     title_updated: bool = False
-    heading1_applied: bool = False
-    heading2_applied: int = 0
+    slides_missing_title: int = 0
     alt_generated: int = 0
-    alt_decorative: int = 0
     alt_already_present: int = 0
     alt_cleaned: int = 0
     visuals_seen: int = 0
-    tables_header_set: int = 0
 
 
 def clean_text(value: str) -> str:
