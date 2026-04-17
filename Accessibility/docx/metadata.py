@@ -7,22 +7,33 @@ LABEL = "Title metadata"
 
 
 def run(doc, stats: DocumentStats, ctx: dict) -> None:
-    """Entry point called by the orchestrator.
-
-    Required ctx keys:
-        path — pathlib.Path of the document file
-    """
-    path = ctx["path"]
-    desired_title = path.stem
-
-    try:
-        current_title = str(doc.BuiltInDocumentProperties("Title").Value or "").strip()
-    except Exception:
-        current_title = ""
-
-    if clean_text(current_title) != desired_title:
-        doc.BuiltInDocumentProperties("Title").Value = desired_title
-        stats.title_updated = True
-        print(f'  --> Updated: "{current_title}" -> "{desired_title}"')
+    """Entry point called by the orchestrator."""
+    if ctx.get("mode") == "local":
+        _run_local(doc, stats, ctx)
     else:
-        print(f'  --> Already correct: "{desired_title}"')
+        _run_cloud(doc, stats, ctx)
+
+
+def _run_local(doc, stats: DocumentStats, ctx: dict) -> None:
+    current = clean_text(doc.core_properties.title or "")
+    if current:
+        print(f'  --> Skipped (title already set: "{current}").')
+        return
+    desired = ctx["path"].stem
+    doc.core_properties.title = desired
+    stats.title_updated = True
+    print(f'  --> Set: "{desired}"')
+
+
+def _run_cloud(doc, stats: DocumentStats, ctx: dict) -> None:
+    try:
+        current = clean_text(str(doc.BuiltInDocumentProperties("Title").Value or ""))
+    except Exception:
+        current = ""
+    if current:
+        print(f'  --> Skipped (title already set: "{current}").')
+        return
+    desired = ctx["path"].stem
+    doc.BuiltInDocumentProperties("Title").Value = desired
+    stats.title_updated = True
+    print(f'  --> Set: "{desired}"')

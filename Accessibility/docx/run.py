@@ -1,10 +1,19 @@
 """Orchestrator: run all registered docx modules against every Word file in a folder.
 
+Two modes
+---------
+Local (default):  python-docx only — Word never opens. Fast, no dependencies on
+                  pywin32 / pywinauto.
+Cloud (--cloud):  Opens each file in Word and uses Word's built-in AI for alt text.
+                  Requires pywin32 + pywinauto.
+
 Adding a new module
 -------------------
 1. Create ``docx/<module>.py`` with a ``LABEL`` string and a
-   ``run(doc, stats, ctx)`` function (see existing modules for the signature).
-2. Import it below and append it to ``MODULES``.
+   ``run(doc, stats, ctx)`` function.
+   - Local mode:  ``doc`` is a python-docx Document; ``ctx["mode"] == "local"``
+   - Cloud mode:  ``doc`` is a COM Document;          ``ctx["mode"] == "cloud"``
+2. Import it below and add it to MODULES_LOCAL and/or MODULES_CLOUD.
 """
 from __future__ import annotations
 
@@ -13,36 +22,13 @@ import sys
 import time
 from pathlib import Path
 
-try:
-    import pythoncom
-    import win32com.client
-except ImportError as exc:
-    print(
-        f"ERROR: pywin32 is required. Install with: python -m pip install pywin32\n{exc}",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-
-try:
-    from pywinauto import Application
-except ImportError as exc:
-    print(
-        f"ERROR: pywinauto is required. Install with: python -m pip install pywinauto\n{exc}",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-
 from .core import DocumentStats
-from . import alttext_word_cloud, metadata, headings
+from . import alttext_local, alttext_word_cloud, metadata, headings
 
-# ── Module registry ───────────────────────────────────────────────────────────
-# Add new modules here in the order they should run.
-# Swap alttext_word_cloud for alttext_local to use offline BLIP generation.
-MODULES = [
-    alttext_word_cloud,
-    metadata,
-    headings,
-]
+# ── Module registries ─────────────────────────────────────────────────────────
+
+MODULES_LOCAL = [alttext_local, metadata, headings]
+MODULES_CLOUD = [alttext_word_cloud, metadata, headings]
 
 # ── File discovery ────────────────────────────────────────────────────────────
 
@@ -61,12 +47,33 @@ def iter_candidate_files(folder: Path) -> list[Path]:
 
 # ── Document processing ───────────────────────────────────────────────────────
 
-def process_document(path: Path, word, ui_app: Application) -> DocumentStats:
+def process_document_local(path: Path, modules: list) -> DocumentStats:
+    from docx import Document
+
+    stats = DocumentStats()
+    doc = Document(str(path))
+    ctx = {"path": path, "mode": "local"}
+    success = False
+    try:
+        for i, module in enumerate(modules, start=1):
+            print(f"  [{i}/{len(modules)}] {module.LABEL}")
+            module.run(doc, stats, ctx)
+        success = True
+    finally:
+        if success:
+            doc.save(str(path))
+            print("  Saved.")
+        else:
+            print("  Skipped save (error occurred).")
+    return stats
+
+
+def process_document_cloud(path: Path, word, ui_app, modules: list) -> DocumentStats:
     stats = DocumentStats()
     doc = None
     success = False
 
-    print(f'  Opening "{path.name}"...')
+    print(f'  Opening "{path.name}" in Word...')
     try:
         doc = word.Documents.Open(str(path), ReadOnly=False, AddToRecentFiles=False)
 
@@ -76,10 +83,10 @@ def process_document(path: Path, word, ui_app: Application) -> DocumentStats:
         window.set_focus()
         time.sleep(0.3)
 
-        ctx = {"path": path, "window": window}
+        ctx = {"path": path, "mode": "cloud", "window": window}
 
-        for i, module in enumerate(MODULES, start=1):
-            print(f"  [{i}/{len(MODULES)}] {module.LABEL}")
+        for i, module in enumerate(modules, start=1):
+            print(f"  [{i}/{len(modules)}] {module.LABEL}")
             module.run(doc, stats, ctx)
 
         success = True
@@ -100,9 +107,14 @@ def process_document(path: Path, word, ui_app: Application) -> DocumentStats:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run all Word accessibility modules against a folder of .docx files."
+        description="Run Word accessibility modules against a folder of .docx files."
     )
     parser.add_argument("--folder", type=Path, default=DEFAULT_DOWNLOADS)
+    parser.add_argument(
+        "--cloud",
+        action="store_true",
+        help="Use Word's built-in AI (cloud) for alt text. Requires pywin32 + pywinauto.",
+    )
     return parser.parse_args()
 
 
@@ -110,9 +122,11 @@ def main() -> int:
     args = parse_args()
     folder = args.folder.expanduser()
 
+    alt_mode = "Word AI (cloud)" if args.cloud else "local BLIP"
     print("==========================================")
     print("  Word Accessibility Cleanup")
-    print(f"  Folder: {folder}")
+    print(f"  Folder:   {folder}")
+    print(f"  Alt text: {alt_mode}")
     print("==========================================\n")
 
     if not folder.exists():
@@ -126,39 +140,77 @@ def main() -> int:
 
     print(f"Found {len(files)} file(s).\n")
 
-    pythoncom.CoInitialize()
-    word = win32com.client.Dispatch("Word.Application")
-    word.Visible = True
-    ui_app = Application(backend="uia")
-    print("Word is running.\n")
-
     failed = 0
 
-    try:
+    if args.cloud:
+        try:
+            import pythoncom
+            import win32com.client
+            from pywinauto import Application
+        except ImportError as exc:
+            print(
+                f"ERROR: Cloud mode requires pywin32 + pywinauto.\n"
+                f"  pip install pywin32 pywinauto\n{exc}",
+                file=sys.stderr,
+            )
+            return 1
+
+        pythoncom.CoInitialize()
+        word = win32com.client.Dispatch("Word.Application")
+        word.Visible = True
+        ui_app = Application(backend="uia")
+        print("Word is running.\n")
+
+        try:
+            for index, path in enumerate(files, start=1):
+                print(f"[{index}/{len(files)}] {path.name}")
+                print("------------------------------------------")
+                try:
+                    stats = process_document_cloud(path, word, ui_app, MODULES_CLOUD)
+                    _print_stats(stats)
+                except Exception as exc:
+                    failed += 1
+                    print(f"  FAILED: {exc}")
+                print()
+        finally:
+            word.Quit()
+            pythoncom.CoUninitialize()
+
+    else:
+        try:
+            from docx import Document  # noqa: F401 — verify install early
+        except ImportError:
+            print(
+                "ERROR: Local mode requires python-docx.\n"
+                "  pip install python-docx",
+                file=sys.stderr,
+            )
+            return 1
+
         for index, path in enumerate(files, start=1):
             print(f"[{index}/{len(files)}] {path.name}")
             print("------------------------------------------")
             try:
-                stats = process_document(path, word, ui_app)
-                print(
-                    f"  title={stats.title_updated}  h1={stats.heading1_applied}  "
-                    f"h2={stats.heading2_applied}  visuals={stats.visuals_seen}  "
-                    f"generated={stats.alt_generated}  decorative={stats.alt_decorative}  "
-                    f"present={stats.alt_already_present}  cleaned={stats.alt_cleaned}"
-                )
+                stats = process_document_local(path, MODULES_LOCAL)
+                _print_stats(stats)
             except Exception as exc:
                 failed += 1
                 print(f"  FAILED: {exc}")
             print()
 
-    finally:
-        word.Quit()
-        pythoncom.CoUninitialize()
-
     print("==========================================")
     print(f"  Done — {len(files)} file(s), {failed} failure(s)")
     print("==========================================")
     return 1 if failed else 0
+
+
+def _print_stats(stats: DocumentStats) -> None:
+    print(
+        f"  title={stats.title_updated}  h1={stats.heading1_applied}  "
+        f"h2={stats.heading2_applied}  visuals={stats.visuals_seen}  "
+        f"generated={stats.alt_generated}  decorative={stats.alt_decorative}  "
+        f"present={stats.alt_already_present}  cleaned={stats.alt_cleaned}"
+    )
 
 
 if __name__ == "__main__":
