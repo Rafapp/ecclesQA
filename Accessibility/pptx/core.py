@@ -19,7 +19,10 @@ BOILERPLATE_ALT_PATTERN = re.compile(
     r"|object\s+\d+"
     r"|ole\s+object"
     r"|image\s+\d+"
-    r"|picture\s+\d+)$",
+    r"|picture\s+\d+"
+    r"|[a-zA-Z]:\\[^\n]+"        # Windows file path e.g. C:\TEMP\scl3.PNG
+    r"|/[^\n]+\.[a-zA-Z]{2,5}"   # Unix file path e.g. /tmp/image.png
+    r")$",
     re.IGNORECASE,
 )
 
@@ -32,6 +35,7 @@ class PresentationStats:
     alt_already_present: int = 0
     alt_cleaned: int = 0
     visuals_seen: int = 0
+    decorative_marked: int = 0
 
 
 def clean_text(value: str) -> str:

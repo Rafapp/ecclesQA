@@ -1,10 +1,9 @@
-"""Module: generate alt text for images/OLE objects in a presentation using BLIP large (local)."""
+"""Module: generate alt text for all visual shapes in a presentation using BLIP large (local)."""
 from __future__ import annotations
 
 import time
 from io import BytesIO
 
-from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.oxml.ns import qn
 
 from .core import BOILERPLATE_ALT_PATTERN, PresentationStats, clean_text, strip_ai_footer
@@ -16,6 +15,13 @@ _MAX_NEW_TOKENS = 50
 _processor = None
 _model = None
 _device = None
+
+_P_PIC           = qn("p:pic")
+_P_GRAPHIC_FRAME = qn("p:graphicFrame")
+_P_OLE_OBJ       = qn("p:oleObj")
+_C_CHART         = qn("c:chart")
+_A_BLIP          = qn("a:blip")
+_R_EMBED         = qn("r:embed")
 
 
 def _load_model() -> None:
@@ -50,13 +56,13 @@ def _caption_one(image_bytes: bytes) -> str:
     return _processor.decode(out[0], skip_special_tokens=True).strip()
 
 
-def _ole_preview_bytes(element, slide_part) -> bytes | None:
-    """Extract the raster preview image embedded inside an OLE object element."""
+def _blip_bytes(element, slide_part) -> bytes | None:
+    """Return image bytes for the first <a:blip r:embed> found inside element."""
     try:
-        blip = element.find(".//" + qn("a:blip"))
+        blip = element.find(".//" + _A_BLIP)
         if blip is None:
             return None
-        rId = blip.get(qn("r:embed"))
+        rId = blip.get(_R_EMBED)
         if not rId:
             return None
         return slide_part.related_part(rId).blob
@@ -64,30 +70,48 @@ def _ole_preview_bytes(element, slide_part) -> bytes | None:
         return None
 
 
-def _walk_shapes(shapes, slide_part, results: list) -> None:
-    for shape in shapes:
-        st = shape.shape_type
-        if st == MSO_SHAPE_TYPE.GROUP:
-            _walk_shapes(shape.shapes, slide_part, results)
-        elif st == MSO_SHAPE_TYPE.PICTURE:
-            try:
-                cNvPr = shape._element.nvPicPr.cNvPr
-                results.append(("picture", cNvPr, shape.image.blob))
-            except Exception:
-                pass
-        elif st == MSO_SHAPE_TYPE.EMBEDDED_OLE_OBJECT:
-            try:
-                cNvPr = shape._element.nvGraphicFramePr.cNvPr
-                image_bytes = _ole_preview_bytes(shape._element, slide_part)
+def _collect_visuals(slide) -> list[tuple]:
+    """
+    Iterate the raw slide XML at any nesting depth.
+    Returns list of (kind, cNvPr_element, image_bytes_or_None).
+    """
+    results: list[tuple] = []
+    seen_ids: set[str] = set()
+    root = slide._element
+    sp = slide.part
+
+    # ── Pictures (<p:pic>) ────────────────────────────────────────────────────
+    for pic in root.iter(_P_PIC):
+        try:
+            cNvPr = pic.nvPicPr.cNvPr
+            uid = cNvPr.get("id")
+            if uid in seen_ids:
+                continue
+            seen_ids.add(uid)
+            image_bytes = _blip_bytes(pic, sp)
+            if image_bytes:
+                results.append(("picture", cNvPr, image_bytes))
+        except Exception:
+            pass
+
+    # ── Graphic frames (<p:graphicFrame>): OLE objects and charts ─────────────
+    for gf in root.iter(_P_GRAPHIC_FRAME):
+        try:
+            cNvPr = gf.nvGraphicFramePr.cNvPr
+            uid = cNvPr.get("id")
+            if uid in seen_ids:
+                continue
+            seen_ids.add(uid)
+
+            if gf.find(".//" + _P_OLE_OBJ) is not None:
+                image_bytes = _blip_bytes(gf, sp)
                 if image_bytes:
                     results.append(("ole", cNvPr, image_bytes))
-            except Exception:
-                pass
+            elif gf.find(".//" + _C_CHART) is not None:
+                results.append(("chart", cNvPr, None))
+        except Exception:
+            pass
 
-
-def _collect_visuals(slide) -> list[tuple]:
-    results: list[tuple] = []
-    _walk_shapes(slide.shapes, slide.part, results)
     return results
 
 
@@ -112,7 +136,7 @@ def run(prs, stats: PresentationStats, ctx: dict) -> None:
 
     if not needs_caption:
         print(
-            f"  --> Skipped ({stats.alt_already_present} image(s) already have alt text)."
+            f"  --> Skipped ({stats.alt_already_present} visual(s) already have alt text)."
         )
         return
 
@@ -127,6 +151,12 @@ def run(prs, stats: PresentationStats, ctx: dict) -> None:
             stats.alt_generated += 1
             print(f"  [{i}/{len(needs_caption)}] (equation) {caption}")
             continue
+        if kind == "chart":
+            caption = "Chart"
+            cNvPr.set("descr", caption)
+            stats.alt_generated += 1
+            print(f"  [{i}/{len(needs_caption)}] (chart) {caption}")
+            continue
         try:
             t0 = time.perf_counter()
             caption = _caption_one(image_bytes)
@@ -135,8 +165,11 @@ def run(prs, stats: PresentationStats, ctx: dict) -> None:
             cNvPr.set("descr", caption)
             stats.alt_generated += 1
             print(f"  [{i}/{len(needs_caption)}] ({elapsed:.1f}s) {caption}")
-        except Exception as exc:
-            print(f"  [{i}/{len(needs_caption)}] ERROR: {exc}")
+        except Exception:
+            caption = "Image"
+            cNvPr.set("descr", caption)
+            stats.alt_generated += 1
+            print(f"  [{i}/{len(needs_caption)}] (unreadable format) {caption}")
 
     if times:
         print(

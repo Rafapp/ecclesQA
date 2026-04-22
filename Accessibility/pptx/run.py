@@ -6,11 +6,11 @@ from pathlib import Path
 
 from pptx import Presentation
 
-from . import alttext_local, metadata
+from . import alttext_local, decorative, metadata
 from .core import PresentationStats
 from .ppt_to_pptx import convert, needs_conversion
 
-MODULES = [alttext_local, metadata]
+MODULES = [alttext_local, decorative, metadata]
 
 SUPPORTED_PATTERNS = ("*.pptx", "*.pptm", "*.ppt")
 
@@ -20,7 +20,7 @@ DEFAULT_FOLDER = Path.home() / "Downloads"
 def _collect_files(folder: Path) -> list[Path]:
     files: list[Path] = []
     for pattern in SUPPORTED_PATTERNS:
-        files.extend(folder.glob(pattern))
+        files.extend(f for f in folder.glob(pattern) if not f.name.startswith("~$"))
     return sorted(set(files))
 
 
@@ -50,6 +50,8 @@ def _print_stats(stats: PresentationStats) -> None:
     lines = []
     if stats.title_updated:
         lines.append("title metadata set")
+    if stats.decorative_marked:
+        lines.append(f"{stats.decorative_marked} shape(s) marked decorative")
     if stats.alt_generated:
         lines.append(f"{stats.alt_generated} alt text(s) generated")
     if stats.alt_already_present:
