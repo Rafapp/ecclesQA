@@ -1,2 +1,5 @@
 _tmp/
 **/_tmp/
+.secrets/*
+!.secrets/
+!.secrets/pdf_cloud.env.example
