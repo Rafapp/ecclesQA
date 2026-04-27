@@ -7,11 +7,13 @@ import shutil
 from pathlib import Path
 
 from Accessibility.pdf_local import alttext_local, metadata, security
+from pypdf import PdfReader
 
 from .config import CredentialsError, DEFAULT_CREDENTIALS_FILE, load_credentials
 from .core import FAILED_STATUSES, PdfStats, TARGET_RULES, summarize_statuses
 from .report import AccessibilityReport, parse_report
 from .service import AdobePdfServicesClient, CloudPdfError
+from Accessibility.manifest import JobManifest
 
 
 DEFAULT_DOWNLOADS = Path.home() / "Downloads"
@@ -112,11 +114,26 @@ def _lookup_password(password_map: dict[str, str], path: Path) -> str | None:
     return None
 
 
+def _pdf_has_tags(path: Path) -> bool:
+    try:
+        reader = PdfReader(str(path), strict=False)
+        root = reader.trailer["/Root"]
+        mark_info = root.get("/MarkInfo")
+        return (
+            root.get("/StructTreeRoot") is not None
+            and mark_info is not None
+            and bool(mark_info.get("/Marked"))
+        )
+    except Exception:
+        return False
+
+
 def process_pdf(
     path: Path,
     client: AdobePdfServicesClient,
     password_map: dict[str, str],
     ocr_locale: str,
+    manifest: JobManifest,
 ) -> None:
     print(f"\n{'=' * 60}")
     print(f"File: {path.name}")
@@ -179,16 +196,17 @@ def process_pdf(
         except (CloudPdfError, OSError, ValueError, json.JSONDecodeError) as exc:
             print(f"  Before check unavailable: {exc}")
 
+        current_input = work_path
         needs_ocr = _needs_status(before, "Image-only PDF")
         needs_tagging = (
-            needs_ocr
+            not _pdf_has_tags(current_input)
+            or needs_ocr
             or _needs_status(before, "Tagged PDF")
             or _needs_status(before, "Tagged content")
             or _needs_status(before, "Figures alternate text")
             or _needs_status(before, "Other elements alternate text")
         )
 
-        current_input = work_path
         if needs_ocr:
             client.ocr_pdf(current_input, ocr_path, locale=ocr_locale)
             current_input = ocr_path
@@ -238,6 +256,10 @@ def process_pdf(
 
         _print_stats(stats, before, after)
         success = True
+        manifest.mark_done(path)
+    except Exception as exc:
+        manifest.mark_failed(path, str(exc))
+        raise
     finally:
         if success:
             for temp_path in temp_paths:
@@ -352,11 +374,31 @@ def main(argv: list[str] | None = None) -> int:
         print("  Credentials: environment variables")
     print("==========================================")
 
+    manifests: dict[Path, JobManifest] = {}
+    # Track which folders have started pdf_cloud processing
+    started_folders: set[Path] = set()
+
     failures = 0
     for index, path in enumerate(files, start=1):
+        folder = path.parent
+        if folder not in manifests:
+            manifests[folder] = JobManifest.for_folder(folder)
+            
+            # Check if pdf_cloud is already complete for this folder
+            if manifests[folder].is_filetype_complete("pdf_cloud"):
+                print(f"\nFolder {folder.name}: PDF files have already been processed. Skipping.")
+                continue
+            
+            # Mark pdf_cloud as started for this folder
+            if folder not in started_folders:
+                manifests[folder].mark_filetype_started("pdf_cloud")
+                started_folders.add(folder)
+        
+        manifest = manifests[folder]
+
         print(f"\n[{index}/{len(files)}]")
         try:
-            process_pdf(path, client, password_map, args.ocr_locale)
+            process_pdf(path, client, password_map, args.ocr_locale, manifest)
         except Exception as exc:
             failures += 1
             print(f"  FAILED: {exc}")
@@ -364,6 +406,13 @@ def main(argv: list[str] | None = None) -> int:
     print("\n==========================================")
     print(f"  Done - {len(files)} file(s), {failures} failure(s)")
     print("==========================================")
+    
+    # Mark pdf_cloud as complete for each folder with no failures
+    if failures == 0:
+        for folder, manifest in manifests.items():
+            if folder in started_folders:
+                manifest.mark_filetype_complete("pdf_cloud")
+    
     return 1 if failures else 0
 
 

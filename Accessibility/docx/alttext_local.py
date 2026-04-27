@@ -105,6 +105,32 @@ def _collect_image_shapes(doc) -> list[tuple]:
 
 # ── Inference ─────────────────────────────────────────────────────────────────
 
+def _remove_hallucinated_prefix(text: str) -> str:
+    """Remove BLIP hallucinations like 'Arafed', 'Anamed', etc. at the start.
+    
+    These appear as 'A' + gibberish word + space + rest.
+    Replaces with 'A' or 'An' depending on the next word.
+    """
+    import re
+    # Known hallucination patterns from BLIP (captured without the leading 'A')
+    known_bad = {"rafed", "named", "signed", "igned", "model"}
+    match = re.match(r"^A([a-z]{2,7})\s+(.+)$", text)
+    if match:
+        prefix_word = match.group(1)
+        rest = match.group(2)
+        # Check if it's a known bad pattern
+        if prefix_word.lower() in known_bad:
+            # Use 'An' if rest starts with vowel, 'A' otherwise
+            article = "An" if rest and rest[0].lower() in "aeiou" else "A"
+            return article + " " + rest
+        # Heuristic: if very consonant-heavy (>70%), likely hallucination
+        vowels = sum(1 for c in prefix_word if c in "aeiouAEIOU")
+        if len(prefix_word) > 0 and vowels / len(prefix_word) < 0.3:
+            article = "An" if rest and rest[0].lower() in "aeiou" else "A"
+            return article + " " + rest
+    return text
+
+
 def _caption_one(pil_image) -> str:
     import torch
 
@@ -116,7 +142,8 @@ def _caption_one(pil_image) -> str:
             num_beams=1,          # greedy — fastest, still good enough for gist
             repetition_penalty=1.3,
         )
-    return _processor.decode(out[0], skip_special_tokens=True).strip()
+    caption = _processor.decode(out[0], skip_special_tokens=True).strip()
+    return _remove_hallucinated_prefix(caption)
 
 
 # ── Alt-text processing ───────────────────────────────────────────────────────

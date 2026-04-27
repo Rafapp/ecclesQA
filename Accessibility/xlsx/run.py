@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .core import WorkbookStats
 from .xls_to_xlsx import convert, needs_conversion
+from Accessibility.manifest import JobManifest
 
 # Register future accessibility modules here (e.g. alt text for charts)
 MODULES: list = []
@@ -22,7 +23,7 @@ def _collect_files(folder: Path) -> list[Path]:
     return sorted(set(files))
 
 
-def process_workbook(path: Path, excel) -> WorkbookStats:
+def process_workbook(path: Path, excel, manifest: JobManifest) -> WorkbookStats:
     stats = WorkbookStats()
 
     print(f"\n{'='*60}")
@@ -45,6 +46,7 @@ def process_workbook(path: Path, excel) -> WorkbookStats:
         print(f"\n  Saved: {path.name}")
 
     _print_stats(stats)
+    manifest.mark_done(path)
     return stats
 
 
@@ -72,6 +74,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Error: '{folder}' is not a directory.")
         return 1
 
+    # Initialize manifest for tracking progress
+    manifest = JobManifest.for_folder(folder)
+    
+    # Skip if xlsx processing already complete
+    if manifest.is_filetype_complete("xlsx"):
+        print("XLSX files have already been processed. Skipping.\n")
+        return 0
+
     files = _collect_files(folder)
     to_convert = [f for f in files if needs_conversion(f)]
 
@@ -80,6 +90,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     print(f"Found {len(to_convert)} legacy file(s) to convert in '{folder}'.")
+
+    # Mark that xlsx processing is starting
+    manifest.mark_filetype_started("xlsx")
 
     import pythoncom
     import win32com.client
@@ -93,13 +106,19 @@ def main(argv: list[str] | None = None) -> int:
     try:
         for path in to_convert:
             try:
-                process_workbook(path, excel)
+                process_workbook(path, excel, manifest)
             except Exception as exc:
-                print(f"  ERROR processing {path.name}: {exc}")
                 failed += 1
+                manifest.mark_failed(path, str(exc))
+                print(f"  ERROR processing {path.name}: {exc}")
     finally:
         excel.Quit()
         pythoncom.CoUninitialize()
 
     print("\nDone.")
+    
+    # Only mark filetype as complete if no failures
+    if failed == 0:
+        manifest.mark_filetype_complete("xlsx")
+    
     return 1 if failed else 0

@@ -24,6 +24,7 @@ from pathlib import Path
 
 from .core import DocumentStats
 from . import alttext_local, alttext_word_cloud, metadata, headings, table_headers, doc_to_docx
+from Accessibility.manifest import JobManifest
 
 # ── Module registries ─────────────────────────────────────────────────────────
 
@@ -143,12 +144,23 @@ def main() -> int:
         print(f'ERROR: Folder not found: "{folder}"', file=sys.stderr)
         return 1
 
+    # Initialize manifest for tracking progress
+    manifest = JobManifest.for_folder(folder)
+    
+    # Skip if docx processing already complete
+    if manifest.is_filetype_complete("docx"):
+        print("DOCX files have already been processed. Skipping.\n")
+        return 0
+
     files = iter_candidate_files(folder)
     if not files:
         print(f'No Word files found in "{folder}".')
         return 0
 
     print(f"Found {len(files)} file(s).\n")
+
+    # Mark that docx processing is starting
+    manifest.mark_filetype_started("docx")
 
     failed = 0
 
@@ -178,8 +190,10 @@ def main() -> int:
                 try:
                     stats = process_document_cloud(path, word, ui_app, MODULES_CLOUD)
                     _print_stats(stats)
+                    manifest.mark_done(path)
                 except Exception as exc:
                     failed += 1
+                    manifest.mark_failed(path, str(exc))
                     print(f"  FAILED: {exc}")
                 print()
         finally:
@@ -203,14 +217,21 @@ def main() -> int:
             try:
                 stats = process_document_local(path, MODULES_LOCAL)
                 _print_stats(stats)
+                manifest.mark_done(path)
             except Exception as exc:
                 failed += 1
+                manifest.mark_failed(path, str(exc))
                 print(f"  FAILED: {exc}")
             print()
 
     print("==========================================")
     print(f"  Done — {len(files)} file(s), {failed} failure(s)")
     print("==========================================")
+    
+    # Only mark filetype as complete if no failures
+    if failed == 0:
+        manifest.mark_filetype_complete("docx")
+    
     return 1 if failed else 0
 
 

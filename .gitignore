@@ -1,5 +1,24 @@
+# Temp files
 _tmp/
 **/_tmp/
+
+# Secrets
 .secrets/*
 !.secrets/
 !.secrets/pdf_cloud.env.example
+
+# Python cache / compiled files
+**pycache**/
+**/**pycache**/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# VS Code (ignore everything)
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db

@@ -38,6 +38,7 @@ def _load_model() -> None:
     from transformers import BlipForConditionalGeneration, BlipProcessor
 
     _device = "cuda" if torch.cuda.is_available() else "cpu"
+    print("  --> Alt text missing: initializing LLM to generate captions ...")
     print(f"  --> Loading BLIP large on {_device} ...")
     _processor = BlipProcessor.from_pretrained(_MODEL_ID)
     _model = BlipForConditionalGeneration.from_pretrained(_MODEL_ID).to(_device)
@@ -57,7 +58,8 @@ def _caption_one(image_bytes: bytes) -> str:
             num_beams=1,
             repetition_penalty=1.3,
         )
-    return _processor.decode(out[0], skip_special_tokens=True).strip()
+    caption = _processor.decode(out[0], skip_special_tokens=True).strip()
+    return _remove_hallucinated_prefix(caption)
 
 
 def _page_id_map(reader: PdfReader) -> dict[int, int]:
@@ -154,10 +156,38 @@ def _collect_page_images(path: Path) -> dict[int, list[tuple[str, bytes]]]:
     return results
 
 
+def _remove_hallucinated_prefix(text: str) -> str:
+    """Remove BLIP hallucinations like 'Arafed', 'Anamed', etc. at the start.
+    
+    These appear as 'A' + gibberish word + space + rest.
+    Replaces with 'A' or 'An' depending on the next word.
+    """
+    import re
+    # Known hallucination patterns from BLIP (captured without the leading 'A')
+    known_bad = {"rafed", "named", "signed", "igned", "model"}
+    match = re.match(r"^A([a-z]{2,7})\s+(.+)$", text)
+    if match:
+        prefix_word = match.group(1)
+        rest = match.group(2)
+        # Check if it's a known bad pattern
+        if prefix_word.lower() in known_bad:
+            # Use 'An' if rest starts with vowel, 'A' otherwise
+            article = "An" if rest and rest[0].lower() in "aeiou" else "A"
+            return article + " " + rest
+        # Heuristic: if very consonant-heavy (>70%), likely hallucination
+        vowels = sum(1 for c in prefix_word if c in "aeiouAEIOU")
+        if len(prefix_word) > 0 and vowels / len(prefix_word) < 0.3:
+            article = "An" if rest and rest[0].lower() in "aeiou" else "A"
+            return article + " " + rest
+    return text
+
+
 def _finalize_caption(value: str) -> str:
     flat = clean_text(value).rstrip(".")
     if not flat:
         return ""
+    # Remove hallucinated prefixes before capitalizing
+    flat = _remove_hallucinated_prefix(flat)
     return flat[0].upper() + flat[1:]
 
 

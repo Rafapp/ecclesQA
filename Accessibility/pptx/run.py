@@ -9,6 +9,7 @@ from pptx import Presentation
 from . import alttext_local, decorative, metadata
 from .core import PresentationStats
 from .ppt_to_pptx import convert, needs_conversion
+from Accessibility.manifest import JobManifest
 
 MODULES = [alttext_local, decorative, metadata]
 
@@ -24,7 +25,7 @@ def _collect_files(folder: Path) -> list[Path]:
     return sorted(set(files))
 
 
-def process_presentation(path: Path) -> None:
+def process_presentation(path: Path, manifest: JobManifest) -> None:
     print(f"\n{'='*60}")
     print(f"File: {path.name}")
 
@@ -44,6 +45,7 @@ def process_presentation(path: Path) -> None:
     prs.save(str(path))
     print(f"\n  Saved: {path.name}")
     _print_stats(stats)
+    manifest.mark_done(path)
 
 
 def _print_stats(stats: PresentationStats) -> None:
@@ -80,17 +82,37 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Error: '{folder}' is not a directory.")
         return 1
 
+    # Initialize manifest for tracking progress
+    manifest = JobManifest.for_folder(folder)
+    
+    # Skip if pptx processing already complete
+    if manifest.is_filetype_complete("pptx"):
+        print("PPTX files have already been processed. Skipping.\n")
+        return 0
+
     files = _collect_files(folder)
     if not files:
         print(f"No supported files found in '{folder}'.")
         return 0
 
     print(f"Found {len(files)} file(s) in '{folder}'.")
+    
+    # Mark that pptx processing is starting
+    manifest.mark_filetype_started("pptx")
+    
+    failed = 0
     for path in files:
         try:
-            process_presentation(path)
+            process_presentation(path, manifest)
         except Exception as exc:
+            failed += 1
+            manifest.mark_failed(path, str(exc))
             print(f"  ERROR processing {path.name}: {exc}")
 
     print("\nDone.")
-    return 0
+    
+    # Only mark filetype as complete if no failures
+    if failed == 0:
+        manifest.mark_filetype_complete("pptx")
+    
+    return 1 if failed else 0

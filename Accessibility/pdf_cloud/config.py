@@ -37,19 +37,25 @@ def _parse_env_file(path: Path) -> dict[str, str]:
         )
 
     values: dict[str, str] = {}
+    first_line = True
     for line_number, raw_line in enumerate(
         path.read_text(encoding="utf-8", errors="ignore").splitlines(),
         start=1,
     ):
         line = raw_line.strip()
+        if first_line:
+            line = line.lstrip("\ufeff")
+            first_line = False
         if not line or line.startswith("#"):
             continue
+        if line.startswith("export "):
+            line = line[len("export ") :].lstrip()
         if "=" not in line:
             raise CredentialsError(
                 f"Invalid line {line_number} in {path}: expected KEY=value syntax."
             )
         key, raw_value = line.split("=", 1)
-        key = key.strip()
+        key = key.strip().lstrip("\ufeff")
         if not key:
             raise CredentialsError(
                 f"Invalid line {line_number} in {path}: missing variable name."
@@ -59,7 +65,7 @@ def _parse_env_file(path: Path) -> dict[str, str]:
 
 
 def load_credentials(credentials_file: Path | None = None) -> CloudCredentials:
-    source_path = credentials_file or DEFAULT_CREDENTIALS_FILE
+    source_path = (credentials_file or DEFAULT_CREDENTIALS_FILE).expanduser()
     values: dict[str, str] = {}
     source: Path | None = None
 
