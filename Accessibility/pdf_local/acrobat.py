@@ -20,6 +20,9 @@ from pywinauto.keyboard import send_keys
 from pypdf import PdfReader
 
 PW_RENDERFULLCONTENT = 0x00000002
+BM_CLICK = 0x00F5
+BM_GETCHECK = 0x00F0
+BST_CHECKED = 1
 ACCESSIBILITY_ROW_POINT = (0.919, 0.641)
 AUTOTAG_DOCUMENT_POINT = (0.882, 0.209)
 
@@ -88,9 +91,9 @@ class AcrobatSession:
 
         self.open_document(path)
         self._ensure_not_crashed()
+        self._spawn_checker_helper()
         if not self.app.MenuItemExecute("AccCheck:DoCheck"):
             raise AcrobatError("Failed to launch Acrobat accessibility checker.")
-        self._spawn_checker_helper()
 
         deadline = time.time() + timeout_seconds
         while time.time() < deadline:
@@ -240,24 +243,72 @@ class AcrobatSession:
 
     def _maybe_start_checker(self) -> None:
         for hwnd in self._find_windows_by_title("Accessibility Checker Options"):
-            dialog = Application(backend="win32").connect(handle=hwnd).window(handle=hwnd)
+            self._start_checker_dialog(hwnd)
+
+    @staticmethod
+    def _start_checker_dialog(hwnd: int) -> bool:
+        start_button = None
+        checkbox = None
+        for child in AcrobatSession._find_child_windows(hwnd):
+            title = win32gui.GetWindowText(child).replace("&", "")
+            if title == "Show this dialog when the Checker starts":
+                checkbox = child
+            if title == "Start Checking":
+                start_button = child
+
+        if checkbox is not None:
             try:
-                checkbox = dialog.child_window(
-                    title="Show &this dialog when the Checker starts",
-                    class_name="Button",
-                )
-                if checkbox.exists() and checkbox.get_check_state():
-                    checkbox.click()
+                if win32gui.SendMessage(checkbox, BM_GETCHECK, 0, 0) == BST_CHECKED:
+                    win32gui.PostMessage(checkbox, BM_CLICK, 0, 0)
             except Exception:
                 pass
-            dialog.child_window(title="&Start Checking", class_name="Button").click()
+
+        if start_button is not None:
+            try:
+                win32gui.PostMessage(start_button, BM_CLICK, 0, 0)
+                return AcrobatSession._wait_for_window_to_close(hwnd, timeout_seconds=2.0)
+            except Exception:
+                return False
+        return False
+
+    @staticmethod
+    def _wait_for_window_to_close(hwnd: int, timeout_seconds: float) -> bool:
+        deadline = time.time() + timeout_seconds
+        while time.time() < deadline:
+            if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
+                return True
+            time.sleep(0.05)
+        return not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd)
 
     @staticmethod
     def _spawn_checker_helper() -> None:
         script = r"""
 import time
 import win32gui
-from pywinauto import Application
+
+BM_CLICK = 0x00F5
+BM_GETCHECK = 0x00F0
+BST_CHECKED = 1
+
+def find_child_windows(parent):
+    children = []
+
+    def callback(hwnd, _):
+        children.append(hwnd)
+
+    win32gui.EnumChildWindows(parent, callback, None)
+    return children
+
+def dialog_closed(hwnd):
+    return not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd)
+
+def wait_for_dialog_to_close(hwnd, timeout_seconds):
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        if dialog_closed(hwnd):
+            return True
+        time.sleep(0.05)
+    return dialog_closed(hwnd)
 
 deadline = time.time() + 30
 while time.time() < deadline:
@@ -269,20 +320,29 @@ while time.time() < deadline:
 
     win32gui.EnumWindows(callback, None)
     for hwnd in matches:
-        try:
-            dialog = Application(backend='win32').connect(handle=hwnd).window(handle=hwnd)
+        start_button = None
+        checkbox = None
+        for child in find_child_windows(hwnd):
+            title = win32gui.GetWindowText(child).replace('&', '')
+            if title == 'Show this dialog when the Checker starts':
+                checkbox = child
+            if title == 'Start Checking':
+                start_button = child
+        if checkbox is not None:
             try:
-                checkbox = dialog.child_window(
-                    title='Show &this dialog when the Checker starts',
-                    class_name='Button',
-                )
-                if checkbox.exists() and checkbox.get_check_state():
-                    checkbox.click()
+                if win32gui.SendMessage(checkbox, BM_GETCHECK, 0, 0) == BST_CHECKED:
+                    win32gui.PostMessage(checkbox, BM_CLICK, 0, 0)
             except Exception:
                 pass
-            dialog.child_window(title='&Start Checking', class_name='Button').click()
-        except Exception:
-            pass
+        if start_button is not None:
+            try:
+                win32gui.PostMessage(start_button, BM_CLICK, 0, 0)
+                if wait_for_dialog_to_close(hwnd, 2.0):
+                    raise SystemExit(0)
+            except SystemExit:
+                raise SystemExit(0)
+            except Exception:
+                pass
     time.sleep(0.5)
 """
         subprocess.Popen(
@@ -555,6 +615,16 @@ while time.time() < deadline:
 
         win32gui.EnumWindows(callback, None)
         return matches
+
+    @staticmethod
+    def _find_child_windows(parent: int) -> list[int]:
+        children: list[int] = []
+
+        def callback(hwnd, _):
+            children.append(hwnd)
+
+        win32gui.EnumChildWindows(parent, callback, None)
+        return children
 
     @staticmethod
     def _report_path_for(path: Path) -> Path:
