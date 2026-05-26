@@ -1,0 +1,17 @@
+Accessibility Issue Report
+Source: Canvas issues.csv, file_issues.csv
+
+Canvas/course-formatting issues
+- Active: 72,333
+- Fixed: 464
+- Resolved: 496
+- Total observed status count: 73,293
+- Largest active category: Styles might be used instead of semantic markup for structure (19,889)
+- Active issues by severity: suggestion=43,815, error=28,518
+- Best completion rate among 100+ issue groups: Image does not include an 'alt' attribute (17.3%)
+
+File-related issues
+- Total file issues: 43,875
+- Most affected file type: PDF (19,822)
+- Largest file issue: PDF - File is missing a title element (8,994)
+- File issues by type: PDF=19,822, DOC=16,101, PPT=7,603, XLS=349

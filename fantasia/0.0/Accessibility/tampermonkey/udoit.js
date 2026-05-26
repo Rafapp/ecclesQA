@@ -1,12 +1,12 @@
 // ==UserScript==
-// @name         UDOIT + Canvas Module Item Opener (v6.7)
+// @name         UDOIT + Canvas Module Item Opener (v6.8)
 // @namespace    http://tampermonkey.net/
-// @version      6.7
+// @version      6.8
 // @description  Adds UDOIT bulk actions for resolving issues, files, and nondescript links.
 // @match        https://udoit3.ciditools.com/*
 // @match        https://*.instructure.com/courses/*/modules*
 // @run-at       document-idle
-// @grant        none
+// @grant        GM_setClipboard
 // ==/UserScript==
 
 (function () {
@@ -129,6 +129,42 @@
       document.querySelector('[aria-modal="true"]') ||
       document.querySelector('.MuiDialog-root') ||
       document.body;
+  }
+
+  function getCurrentFileTitle() {
+    const dialog = getDialogRoot();
+    const heading = Array.from(dialog.querySelectorAll('h1, h2, h3, [data-cid="Heading"]'))
+      .find(el => isVisible(el) && normalize(el.textContent));
+    return heading ? normalize(heading.textContent) : '';
+  }
+
+  async function copyTextToClipboard(text) {
+    if (!text) return false;
+    if (typeof GM_setClipboard === 'function') {
+      GM_setClipboard(text, 'text');
+      return true;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        return document.execCommand('copy');
+      } catch {
+        return false;
+      } finally {
+        textarea.remove();
+      }
+    }
   }
 
   function getTextInput() {
@@ -401,6 +437,13 @@
       }, 8000);
 
       if (repBtn) {
+          const fileTitle = getCurrentFileTitle();
+          const copiedTitle = await copyTextToClipboard(fileTitle);
+          if (fileTitle) {
+              setStatus(`Copied: ${fileTitle}`);
+              await sleep(copiedTitle ? 250 : 700);
+          }
+
           // CLEANUP: Remove any stale inputs to force a fresh event
           document.querySelectorAll('input[type="file"]').forEach(el => el.remove());
 
