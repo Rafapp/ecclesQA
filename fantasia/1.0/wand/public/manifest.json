@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "wand",
+  "version": "1.0.0",
+  "description": "Chrome extension for UDOIT & Canvas automation",
+  "permissions": [
+    "storage",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:5174/*",
+    "https://udoit3.ciditools.com/*",
+    "https://*.instructure.com/*"
+  ],
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://udoit3.ciditools.com/*",
+        "https://*.instructure.com/*"
+      ],
+      "js": ["content.js"],
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/16.png", "icons/48.png", "windowOpenCapture.js"],
+      "matches": [
+        "https://udoit3.ciditools.com/*",
+        "https://*.instructure.com/*"
+      ]
+    }
+  ]
+}

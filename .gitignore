@@ -16,6 +16,9 @@ _tmp/
 .venv/
 venv/
 
+# Node dependencies
+node_modules/
+
 # VS Code (ignore everything)
 .vscode/
 
