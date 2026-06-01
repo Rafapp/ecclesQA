@@ -2,16 +2,16 @@
 
 # ✨ Project Fantasia
 
-### Accessibility automation for UDOIT &amp; Canvas
+### Issue-fixing and automation tools for the Eccles School of Business Instructional Design team
 
 </div>
 
-Project Fantasia is a suite of tools for finding and fixing accessibility issues. It has three parts:
+Project Fantasia is a suite of tools that help the Eccles instructional design team find and fix all kinds of course issues and automate repetitive work, across UDOIT, Canvas, and beyond. It has three parts:
 
 | Tool | What it is | Status |
 | --- | --- | :-: |
-| 🪄 **Wand** | Chrome extension that spots UDOIT issues and helps fix them in Canvas | 🟢 **Available now (v1.0.0)** |
-| 🧙 **Sorcerer** | Server + web dashboard for sending accessibility jobs (auto-tag PDFs and more) | ⚪ Planned |
+| 🪄 **Wand** | Chrome extension that spots issues and helps fix them right inside UDOIT and Canvas | 🟢 **Available now (v1.0.0)** |
+| 🧙 **Sorcerer** | Server + web dashboard for sending automation jobs in bulk (auto-tag PDFs and more) | ⚪ Planned |
 | 🔮 **Magic** | Windows desktop app that does what Sorcerer does, but on your own machine | ⚪ Planned |
 
 > The rest of this guide covers **Wand**, the part you can use today.
@@ -22,7 +22,7 @@ Project Fantasia is a suite of tools for finding and fixing accessibility issues
 
 **Fantasia v1.0.0**
 
-Wand is a Chrome extension that spots accessibility issues in UDOIT and helps you fix them in Canvas, fast.
+Wand is a Chrome extension that spots course issues in UDOIT and helps you fix them in Canvas, fast. It starts with accessibility and grows to cover more kinds of issues and automations over time.
 
 ---
 
@@ -95,7 +95,7 @@ Still stuck? Ping the team. 💬
 
 ## 🗺️ Roadmap, our "Top 5" remediations
 
-These are the five UDOIT issues we're teaching Wand to fix automatically, in priority order:
+We're starting with accessibility. These are the first five UDOIT issues we're teaching Wand to fix automatically, in priority order, with more issue types and automations to follow:
 
 | # | Remediation | Status |
 | :-: | --- | --- |
