@@ -1,5 +1,5 @@
-export function normalize(value: string | null | undefined): string {
-  return (value ?? "").replace(/\s+/g, " ").trim();
+export function normalize(value: unknown): string {
+  return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
 export function sleep(ms: number): Promise<void> {
