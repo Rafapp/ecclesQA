@@ -4,12 +4,15 @@ import type { PageSnapshot } from "../shared/types";
 const PANEL_ID = "wand-panel";
 const STYLE_ID = "wand-panel-style";
 const ACTION_ID = "wand-remediate-action";
+const TOGGLE_ID = "wand-panel-toggle";
 const PANEL_TITLE = "Wand";
-const VERSION_LABEL = "Version 1.0";
+const VERSION_LABEL = `Version ${__APP_VERSION__}`;
 const ICON_URL = chrome.runtime.getURL("icons/48.png");
+const COLLAPSED_CLASS = "wand-panel--collapsed";
 
 let workspaceActive = false;
 let lastSnapshot: PageSnapshot | null = null;
+let collapsed = false;
 
 export function createPanel(onRemediate?: () => void): HTMLElement {
   injectPanelStyles();
@@ -22,6 +25,21 @@ export function createPanel(onRemediate?: () => void): HTMLElement {
 
   const panel = document.createElement("aside");
   panel.id = PANEL_ID;
+  panel.style.position = "relative";
+
+  const toggle = document.createElement("button");
+  toggle.id = TOGGLE_ID;
+  toggle.className = "wand-panel__toggle";
+  toggle.setAttribute("aria-label", "Toggle Wand panel");
+  toggle.textContent = "▲";
+  toggle.addEventListener("click", () => {
+    collapsed = !collapsed;
+    panel.classList.toggle(COLLAPSED_CLASS, collapsed);
+    toggle.textContent = collapsed ? "▲" : "▼";
+    toggle.setAttribute("aria-label", collapsed ? "Expand Wand panel" : "Collapse Wand panel");
+  });
+  panel.append(toggle);
+
   if (onRemediate) {
     panel.addEventListener("click", (event) => {
       const target = event.target instanceof HTMLElement ? event.target : null;
@@ -52,7 +70,11 @@ export function updatePanelSnapshot(panel: HTMLElement, snapshot: PageSnapshot):
 }
 
 function renderPanel(panel: HTMLElement, snapshot: PageSnapshot | null): void {
+  const toggle = panel.querySelector(`#${TOGGLE_ID}`);
   panel.replaceChildren(createLabel(), createMainContent(snapshot), createVersion());
+  if (toggle instanceof HTMLElement) {
+    panel.prepend(toggle);
+  }
 }
 
 function createLabel(): HTMLElement {

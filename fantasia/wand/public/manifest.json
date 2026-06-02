@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "wand",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Chrome extension for UDOIT & Canvas automation",
   "permissions": [
     "storage",
