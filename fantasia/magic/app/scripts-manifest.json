@@ -1,0 +1,8 @@
+[
+  {
+    "id": "test",
+    "name": "Hello World",
+    "description": "Placeholder script — prints a hello message. Replace this with your first real automation.",
+    "scriptFile": "test.py"
+  }
+]

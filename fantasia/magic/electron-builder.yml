@@ -1,0 +1,27 @@
+appId: edu.utah.eccles.magic
+productName: Magic
+copyright: Copyright © 2026 Eccles School
+
+directories:
+  output: dist
+
+files:
+  - app/**/*
+  - scripts/**/*
+  - node_modules/**/*
+
+extraResources:
+  - from: python/
+    to: python/
+    filter:
+      - "**/*"
+
+win:
+  icon: icons/256.png
+  target:
+    - target: portable
+      arch:
+        - x64
+
+portable:
+  artifactName: magic-v${version}-portable.exe

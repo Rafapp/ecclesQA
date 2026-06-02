@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;" />
+  <title>Magic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="titlebar">
+    <img class="titlebar__icon" src="../../icons/24.png" alt="" />
+    <span class="titlebar__title" id="app-title">Magic</span>
+  </header>
+
+  <main class="main">
+    <section class="scripts-section">
+      <h2 class="section-heading">Automations</h2>
+      <div class="table-wrap">
+        <table class="scripts-table" aria-label="Available scripts">
+          <thead>
+            <tr>
+              <th class="col-name">Script</th>
+              <th class="col-desc">Description</th>
+              <th class="col-action"></th>
+            </tr>
+          </thead>
+          <tbody id="scripts-body">
+            <tr class="placeholder-row">
+              <td colspan="3">Loading scripts…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="folder-picker">
+      <span class="folder-picker__label">Working folder</span>
+      <span class="folder-picker__path" id="folder-path">No folder selected</span>
+      <button class="btn btn--secondary" id="pick-folder-btn" type="button">Browse…</button>
+    </div>
+  </footer>
+
+  <div class="output-overlay hidden" id="output-overlay" role="dialog" aria-modal="true" aria-label="Script output">
+    <div class="output-dialog">
+      <div class="output-dialog__header">
+        <span class="output-dialog__title" id="output-title">Output</span>
+        <button class="btn btn--ghost" id="output-close" type="button" aria-label="Close">✕</button>
+      </div>
+      <pre class="output-dialog__body" id="output-body"></pre>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
