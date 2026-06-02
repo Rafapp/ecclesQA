@@ -3,6 +3,9 @@ import { REMEDIATION_WORKSPACE_MESSAGE, type OpenWorkspaceMessage } from "../sha
 const WORKSPACE_ID = "wand-workspace";
 const FRAME_ID = "wand-workspace-frame";
 const CLOSE_ID = "wand-workspace-close";
+const RESIZER_ID = "wand-workspace-resizer";
+const MIN_LEFT_PCT = 20;
+const MAX_LEFT_PCT = 80;
 
 export function initializeWorkspace(): void {
   chrome.runtime.onMessage.addListener((message: OpenWorkspaceMessage) => {
@@ -43,7 +46,7 @@ function getOrCreateWorkspace(): HTMLElement {
   const workspace = document.createElement("section");
   workspace.id = WORKSPACE_ID;
   workspace.setAttribute("aria-label", "Wand remediation workspace");
-  workspace.replaceChildren(createHeader(), createFrame());
+  workspace.replaceChildren(createResizer(workspace), createHeader(), createFrame());
   document.documentElement.append(workspace);
   return workspace;
 }
@@ -77,6 +80,33 @@ function dispatchWorkspaceState(active: boolean): void {
 function centerUdoitModal(): void {
   const dialog = document.querySelector<HTMLElement>("[role='dialog']");
   dialog?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+}
+
+function createResizer(workspace: HTMLElement): HTMLElement {
+  const resizer = document.createElement("div");
+  resizer.id = RESIZER_ID;
+  resizer.setAttribute("aria-hidden", "true");
+
+  resizer.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    resizer.setPointerCapture(e.pointerId);
+
+    const onMove = (moveEvent: PointerEvent): void => {
+      const pct = Math.min(MAX_LEFT_PCT, Math.max(MIN_LEFT_PCT, (moveEvent.clientX / window.innerWidth) * 100));
+      workspace.style.left = `${pct}vw`;
+      document.documentElement.style.setProperty("--wand-split", `${pct}vw`);
+    };
+
+    const onUp = (): void => {
+      resizer.removeEventListener("pointermove", onMove);
+      resizer.removeEventListener("pointerup", onUp);
+    };
+
+    resizer.addEventListener("pointermove", onMove);
+    resizer.addEventListener("pointerup", onUp);
+  });
+
+  return resizer;
 }
 
 function createFrame(): HTMLIFrameElement {
