@@ -22,8 +22,10 @@ node_modules/
 # Magic bundled Python runtime (binary blob, not source-controlled)
 fantasia/magic/python/
 
-# Magic build output
+# Build outputs (zips go to downloads/ for releases, not committed)
 fantasia/magic/dist/
+fantasia/wand/dist/
+downloads/
 
 # VS Code (ignore everything)
 .vscode/
