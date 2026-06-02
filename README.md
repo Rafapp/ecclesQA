@@ -10,11 +10,11 @@ Project Fantasia is a suite of tools that help the Eccles instructional design t
 
 | Tool | What it is | Status |
 | --- | --- | :-: |
-| 🪄 **Wand** | Chrome extension that spots issues and helps fix them right inside UDOIT and Canvas | 🟢 **Available now (v1.0.0)** |
+| 🪄 **Wand** | Chrome extension that spots issues and helps fix them right inside UDOIT and Canvas | 🟢 **Available now (v1.0.1)** |
+| 🔮 **Magic** | Windows desktop app for running accessibility and data automation scripts on your own machine | 🟢 **Available now (v1.0.0)** |
 | 🧙 **Sorcerer** | Server + web dashboard for sending automation jobs in bulk (auto-tag PDFs and more) | ⚪ Planned |
-| 🔮 **Magic** | Windows desktop app that does what Sorcerer does, but on your own machine | ⚪ Planned |
 
-> The rest of this guide covers **Wand**, the part you can use today.
+> This guide covers both **Wand** and **Magic**, the tools you can use today.
 
 ---
 
@@ -88,6 +88,73 @@ You'll see **Wand** appear in your list of extensions. 🎉
 | I don't see the Wand bar | Refresh the UDOIT/Canvas tab after installing. |
 | "Load unpacked" did nothing | Make sure you picked the **unzipped folder**, not the `.zip` file. |
 | It disappeared after restart | Re-open `chrome://extensions` and check it's still toggled **ON**. |
+
+Still stuck? Ping the team. 💬
+
+---
+
+# 🔮 Magic
+
+**Magic v1.0.0**
+
+Magic is a Windows desktop app that runs automation scripts on your machine — no browser, no server, no Python install needed. Everything is bundled in. Double-click and go.
+
+Current scripts:
+
+| Script | What it does |
+| --- | --- |
+| **MHA Competencies** | Collects Canvas outcomes `.csv` exports into one Excel workbook, one sheet per student |
+
+---
+
+## ⬇️ Download
+
+1. Go to the **[Releases page](../../releases)**.
+2. Open the latest **Magic** release (**Magic v1.0.0**).
+3. Under **Assets**, click **`magic-application-v1.0.0.zip`** to download it.
+
+---
+
+## 🚀 Install (30 seconds)
+
+> 💡 No installation required. No Python, no dependencies. Just unzip and run.
+
+### Step 1. Unzip the file
+Find **`magic-application-v1.0.0.zip`** in your **Downloads** folder. **Right-click → "Extract All"**. You'll get a single `.exe` file.
+
+### Step 2. Run it
+Double-click **`magic-v1.0.0-portable.exe`**.
+
+> Windows may show a "Windows protected your PC" SmartScreen warning the first time because the app isn't signed. Click **"More info"** → **"Run anyway"**. This is expected for internal tools.
+
+That's it. Magic opens. ✅
+
+---
+
+## ▶️ How to use it
+
+### MHA Competencies
+
+1. Export Canvas outcomes reports for each MHA course as `.csv` files and save them all into one folder.
+2. Open Magic and click **Launch** next to **MHA Competencies**.
+3. Set the **CSV Reports Folder** to the folder containing your `.csv` files.
+4. Set the **Output Folder** to where you want the Excel workbook saved.
+5. Give the output file a name (default: `MHA_Competencies_Output`).
+6. Click **Run**.
+7. Magic scans the files and shows you what it found — click **Continue** to proceed or **Abort** to stop.
+8. When done, click **Open Output Folder** to see the result.
+
+**Auto-approve all steps**: Check this box to skip confirmation prompts entirely — useful for large batches or overnight runs.
+
+---
+
+## 🆘 Something not working?
+
+| Problem | Fix |
+| --- | --- |
+| SmartScreen blocks the app | Click "More info" → "Run anyway" |
+| "No .csv files found" | Make sure your exports are `.csv` files in the folder you selected |
+| Script errors on exit | Check the step timeline for the red error step — it will show the message |
 
 Still stuck? Ping the team. 💬
 

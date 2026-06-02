@@ -19,6 +19,12 @@ venv/
 # Node dependencies
 node_modules/
 
+# Magic bundled Python runtime (binary blob, not source-controlled)
+fantasia/magic/python/
+
+# Magic build output
+fantasia/magic/dist/
+
 # VS Code (ignore everything)
 .vscode/
 
