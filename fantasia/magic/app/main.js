@@ -99,9 +99,26 @@ const activeProcs = new Map(); // runId → ChildProcess
 ipcMain.handle("run-script", (event, { runId, scriptFile, args }) => {
   return new Promise((resolve) => {
     const python     = resolvePython();
-    const scriptPath = path.join(resolveScriptsDir(), scriptFile);
-    const cwd        = resolveScriptsDir();
+    const scriptsDir = resolveScriptsDir();
+    const scriptPath = path.join(scriptsDir, scriptFile);
 
+    const pythonExists = fs.existsSync(python);
+    const scriptExists = fs.existsSync(scriptPath);
+
+    if (!pythonExists || !scriptExists) {
+      const msg = [
+        "Launch failed — one or more required files were not found.",
+        `  python : ${python} — ${pythonExists ? "OK" : "NOT FOUND"}`,
+        `  script : ${scriptPath} — ${scriptExists ? "OK" : "NOT FOUND"}`,
+        `  resourcesPath: ${process.resourcesPath}`,
+        `  isPackaged: ${app.isPackaged}`,
+      ].join("\n");
+      event.sender.send("script-event", { type: "run_error", message: msg, runId });
+      resolve({ code: -1 });
+      return;
+    }
+
+    const cwd = scriptsDir;
     const proc = spawn(python, [scriptPath, ...args], { cwd, stdio: ["pipe", "pipe", "pipe"] });
     activeProcs.set(runId, proc);
 
@@ -138,7 +155,14 @@ ipcMain.handle("run-script", (event, { runId, scriptFile, args }) => {
 
     proc.on("error", (err) => {
       activeProcs.delete(runId);
-      event.sender.send("script-event", { type: "run_error", message: err.message, runId });
+      const msg = [
+        `Failed to start Python process: ${err.message}`,
+        `  python : ${python}`,
+        `  script : ${scriptPath}`,
+        `  resourcesPath: ${process.resourcesPath}`,
+        `  isPackaged: ${app.isPackaged}`,
+      ].join("\n");
+      event.sender.send("script-event", { type: "run_error", message: msg, runId });
       resolve({ code: -1 });
     });
   });
