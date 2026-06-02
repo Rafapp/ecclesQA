@@ -1,26 +1,40 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
 const fs = require("fs");
 
 const APP_VERSION = app.getVersion();
 
+// ── Paths ─────────────────────────────────────────────────────────────────────
+
 function resolvePython() {
-  // In packaged app, bundled python lives in resources/python/
-  // In dev, fall back to system python
   const bundled = path.join(process.resourcesPath, "python", "python.exe");
-  if (fs.existsSync(bundled)) {
-    return bundled;
-  }
-  return "python";
+  return fs.existsSync(bundled) ? bundled : "python";
 }
 
 function resolveScriptsDir() {
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, "scripts");
-  }
-  return path.join(__dirname, "..", "scripts");
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "scripts")
+    : path.join(__dirname, "..", "scripts");
 }
+
+// ── Preferences ───────────────────────────────────────────────────────────────
+
+const PREFS_PATH = path.join(app.getPath("userData"), "prefs.json");
+
+function loadPrefs() {
+  try {
+    return JSON.parse(fs.readFileSync(PREFS_PATH, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
+function savePrefs(prefs) {
+  fs.writeFileSync(PREFS_PATH, JSON.stringify(prefs, null, 2), "utf-8");
+}
+
+// ── Window ────────────────────────────────────────────────────────────────────
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -40,7 +54,10 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
+  return win;
 }
+
+// ── IPC: basic ────────────────────────────────────────────────────────────────
 
 ipcMain.handle("get-version", () => APP_VERSION);
 
@@ -50,40 +67,103 @@ ipcMain.handle("get-scripts", () => {
 });
 
 ipcMain.handle("pick-folder", async () => {
-  const result = await dialog.showOpenDialog({
-    properties: ["openDirectory"],
-    title: "Select folder to run script from",
-  });
+  const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
   return result.canceled ? null : result.filePaths[0];
 });
 
-ipcMain.handle("run-script", (_event, { scriptFile, workingDir }) => {
+ipcMain.handle("open-folder", async (_event, folderPath) => {
+  if (folderPath && fs.existsSync(folderPath)) {
+    await shell.openPath(folderPath);
+    return { ok: true };
+  }
+  return { ok: false, error: "Folder not found" };
+});
+
+ipcMain.handle("get-prefs", () => loadPrefs());
+
+ipcMain.handle("set-pref", (_event, { key, value }) => {
+  const prefs = loadPrefs();
+  prefs[key] = value;
+  savePrefs(prefs);
+});
+
+// ── IPC: script runner ────────────────────────────────────────────────────────
+//
+// run-script spawns the Python process and streams JSON-line events back to
+// the renderer via webContents.send("script-event", payload).
+// The renderer sends "script-continue" or "script-abort" for confirm steps.
+// On abort, we send SIGTERM so the script can clean up.
+
+const activeProcs = new Map(); // runId → ChildProcess
+
+ipcMain.handle("run-script", (event, { runId, scriptFile, args }) => {
   return new Promise((resolve) => {
-    const python = resolvePython();
+    const python     = resolvePython();
     const scriptPath = path.join(resolveScriptsDir(), scriptFile);
-    const cwd = workingDir || resolveScriptsDir();
+    const cwd        = resolveScriptsDir();
 
-    const proc = spawn(python, [scriptPath], { cwd });
-    let output = "";
-    let error = "";
+    const proc = spawn(python, [scriptPath, ...args], { cwd, stdio: ["pipe", "pipe", "pipe"] });
+    activeProcs.set(runId, proc);
 
-    proc.stdout.on("data", (d) => { output += d.toString(); });
-    proc.stderr.on("data", (d) => { error += d.toString(); });
+    let buf = "";
+
+    proc.stdout.on("data", (chunk) => {
+      buf += chunk.toString();
+      let nl;
+      while ((nl = buf.indexOf("\n")) !== -1) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        let payload;
+        try {
+          payload = JSON.parse(line);
+        } catch {
+          payload = { type: "log", message: line };
+        }
+        payload.runId = runId;
+        event.sender.send("script-event", payload);
+      }
+    });
+
+    proc.stderr.on("data", (chunk) => {
+      const msg = chunk.toString().trim();
+      if (msg) event.sender.send("script-event", { type: "log", message: msg, runId });
+    });
 
     proc.on("close", (code) => {
-      resolve({ code, output, error });
+      activeProcs.delete(runId);
+      event.sender.send("script-event", { type: "process-exit", code, runId });
+      resolve({ code });
     });
 
     proc.on("error", (err) => {
-      resolve({ code: -1, output: "", error: err.message });
+      activeProcs.delete(runId);
+      event.sender.send("script-event", { type: "run_error", message: err.message, runId });
+      resolve({ code: -1 });
     });
   });
 });
+
+ipcMain.on("script-abort", (_event, { runId }) => {
+  const proc = activeProcs.get(runId);
+  if (proc) {
+    try { proc.stdin.write("abort\n"); } catch {}
+    proc.kill("SIGTERM");
+    activeProcs.delete(runId);
+  }
+});
+
+ipcMain.on("script-continue", (_event, { runId }) => {
+  const proc = activeProcs.get(runId);
+  if (proc) {
+    try { proc.stdin.write("continue\n"); } catch {}
+  }
+});
+
+// ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  if (process.platform !== "darwin") app.quit();
 });

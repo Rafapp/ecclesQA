@@ -29,30 +29,66 @@
             </tr>
           </thead>
           <tbody id="scripts-body">
-            <tr class="placeholder-row">
-              <td colspan="3">Loading scripts…</td>
-            </tr>
+            <tr class="placeholder-row"><td colspan="3">Loading scripts…</td></tr>
           </tbody>
         </table>
       </div>
     </section>
   </main>
 
-  <footer class="footer">
-    <div class="folder-picker">
-      <span class="folder-picker__label">Working folder</span>
-      <span class="folder-picker__path" id="folder-path">No folder selected</span>
-      <button class="btn btn--secondary" id="pick-folder-btn" type="button">Browse…</button>
-    </div>
-  </footer>
+  <!-- ── Run dialog overlay ─────────────────────────────────────────────────── -->
+  <div class="run-overlay hidden" id="run-overlay" role="dialog" aria-modal="true" aria-label="Run script">
+    <div class="run-dialog">
 
-  <div class="output-overlay hidden" id="output-overlay" role="dialog" aria-modal="true" aria-label="Script output">
-    <div class="output-dialog">
-      <div class="output-dialog__header">
-        <span class="output-dialog__title" id="output-title">Output</span>
-        <button class="btn btn--ghost" id="output-close" type="button" aria-label="Close">✕</button>
+      <!-- Header -->
+      <div class="run-dialog__header">
+        <span class="run-dialog__title" id="run-title">Run Script</span>
+        <button class="btn btn--ghost" id="run-close" type="button" aria-label="Close">✕</button>
       </div>
-      <pre class="output-dialog__body" id="output-body"></pre>
+
+      <!-- I/O configuration (shown before run starts) -->
+      <div class="run-config" id="run-config">
+        <div id="run-inputs"></div>
+        <div id="run-outputs"></div>
+
+        <div class="run-config__auto">
+          <label class="auto-approve-label">
+            <input type="checkbox" id="auto-approve-chk" />
+            <span class="auto-approve-text">Auto-approve all steps</span>
+          </label>
+          <span class="auto-approve-warn">Only recommended for long / overnight runs</span>
+        </div>
+
+        <div class="run-config__actions">
+          <button class="btn btn--secondary" id="run-cancel-btn" type="button">Cancel</button>
+          <button class="btn btn--primary"   id="run-launch-btn" type="button">Run</button>
+        </div>
+      </div>
+
+      <!-- Step timeline (shown while running) -->
+      <div class="run-timeline hidden" id="run-timeline">
+        <ol class="timeline-list" id="timeline-list"></ol>
+      </div>
+
+      <!-- Confirm panel (shown when a confirm step fires) -->
+      <div class="run-confirm hidden" id="run-confirm">
+        <div class="confirm-message" id="confirm-message"></div>
+        <ul class="confirm-items" id="confirm-items"></ul>
+        <div class="confirm-actions">
+          <button class="btn btn--danger"   id="confirm-abort-btn"    type="button">Abort</button>
+          <button class="btn btn--primary"  id="confirm-continue-btn" type="button">Continue</button>
+        </div>
+      </div>
+
+      <!-- Footer shown after completion -->
+      <div class="run-footer hidden" id="run-footer">
+        <span class="run-result-msg" id="run-result-msg"></span>
+        <div class="run-footer__actions">
+          <button class="btn btn--secondary" id="open-output-btn" type="button">Open Output Folder</button>
+          <button class="btn btn--primary"   id="run-done-btn"    type="button">Close</button>
+        </div>
+      </div>
+
     </div>
   </div>
 

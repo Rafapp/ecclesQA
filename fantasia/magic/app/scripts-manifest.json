@@ -1,8 +1,41 @@
 [
   {
-    "id": "test",
-    "name": "Hello World",
-    "description": "Placeholder script — prints a hello message. Replace this with your first real automation.",
-    "scriptFile": "test.py"
+    "id": "mha_competencies",
+    "name": "MHA Competencies",
+    "description": "Collects all .csv MHA competency reports into a single workbook, with a worksheet with per-student data.",
+    "scriptFile": "mha_competencies.py",
+    "inputs": [
+      {
+        "id": "input_folder",
+        "label": "CSV Reports Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder containing Canvas outcomes .csv exports (one per course)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "output_folder",
+        "label": "Output Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder where the output workbook will be saved"
+      },
+      {
+        "id": "output_name",
+        "label": "Output File Name",
+        "type": "filename",
+        "extension": ".xlsx",
+        "default": "MHA_Competencies_Output",
+        "required": true,
+        "description": "Name for the generated workbook (without extension)"
+      }
+    ],
+    "steps": [
+      { "id": "scan",      "label": "Scanning for CSV files",         "confirm": true  },
+      { "id": "parse",     "label": "Parsing student records",         "confirm": false },
+      { "id": "build",     "label": "Building student worksheets",     "confirm": false },
+      { "id": "save",      "label": "Saving output workbook",          "confirm": false }
+    ]
   }
 ]

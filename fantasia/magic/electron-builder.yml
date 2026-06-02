@@ -18,6 +18,9 @@ extraResources:
 
 win:
   icon: icons/256.png
+  signingHashAlgorithms: []
+  sign: null
+  certificateFile: null
   target:
     - target: portable
       arch:
