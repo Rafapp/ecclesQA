@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wand controls</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="brand-header">
+        <span class="logo-frame" aria-hidden="true">
+          <img src="icons/48.png" alt="">
+        </span>
+        <span>
+          <strong>Wand</strong>
+          <small>UDOIT + Canvas companion</small>
+        </span>
+        <span class="version" id="version"></span>
+      </header>
+
+      <section class="control-card" aria-labelledby="wand-status-title">
+        <label class="toggle-row" for="wand-enabled">
+          <span>
+            <strong id="wand-status-title">Enable Wand</strong>
+            <small id="wand-status">Active on supported pages</small>
+          </span>
+          <span class="switch">
+            <input id="wand-enabled" type="checkbox" role="switch">
+            <span class="slider" aria-hidden="true"></span>
+          </span>
+        </label>
+      </section>
+
+      <button class="reload-button" id="reload-wand" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 11a8.1 8.1 0 1 0-2.4 5.8l-1.4-1.4A6.1 6.1 0 1 1 18 11h-3l4 4 4-4h-3Z"></path>
+        </svg>
+        <span>
+          <strong>Reload Wand</strong>
+          <small>Reload the extension and refresh open pages</small>
+        </span>
+      </button>
+
+      <p class="message" id="message" role="status" aria-live="polite"></p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

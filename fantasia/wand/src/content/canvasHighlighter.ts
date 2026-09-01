@@ -1,4 +1,4 @@
-import { REMEDIATION_STORAGE_KEY, type PendingRemediation } from "../shared/remediation";
+import { OPEN_MEDIA_PLATFORM_MESSAGE, REMEDIATION_STORAGE_KEY, type OpenMediaPlatformMessage, type PendingRemediation } from "../shared/remediation";
 import { normalize } from "../shared/utils";
 
 const HIGHLIGHT_ID = "wand-remediation-highlight";
@@ -50,6 +50,44 @@ export async function initializeCanvasHighlighter(): Promise<void> {
   console.info("[wand] Canvas remediation target highlighted.", { editPage });
 }
 
+export function applyBoldCueToSelection(): boolean {
+  const frame = findEditableFrames().find((candidate) => {
+    const selection = candidate.contentWindow?.getSelection();
+    return Boolean(selection && !selection.isCollapsed && normalize(selection.toString()));
+  });
+  const frameDocument = frame ? getFrameDocument(frame) : null;
+  const selection = frame?.contentWindow?.getSelection();
+  if (!frame || !frameDocument?.body || !selection || selection.isCollapsed) {
+    return false;
+  }
+
+  frame.contentWindow?.focus();
+  const applied = frameDocument.execCommand("bold", false);
+  if (!applied) {
+    return false;
+  }
+
+  frameDocument.body.dispatchEvent(new InputEvent("input", {
+    bubbles: true,
+    inputType: "formatBold",
+  }));
+  return true;
+}
+
+export async function openCaptionSource(): Promise<boolean> {
+  const url = getCaptionSourceUrl();
+  if (!url) {
+    return false;
+  }
+
+  const message: OpenMediaPlatformMessage = {
+    type: OPEN_MEDIA_PLATFORM_MESSAGE,
+    url,
+  };
+  const response = await chrome.runtime.sendMessage(message) as { ok?: boolean } | undefined;
+  return response?.ok === true;
+}
+
 async function getPendingRemediation(): Promise<PendingRemediation | null> {
   const result = await chrome.storage.local.get(REMEDIATION_STORAGE_KEY);
   const value = result[REMEDIATION_STORAGE_KEY];
@@ -67,7 +105,7 @@ function pageMatchesRemediation(remediation: PendingRemediation): boolean {
   }
 
   const pageText = normalize(document.body.innerText || document.body.textContent);
-  return pageText.includes(remediation.sourceTitle) || pageText.includes(remediation.previewText);
+  return pageText.includes(remediation.sourceTitle) || Boolean(remediation.previewText && pageText.includes(remediation.previewText));
 }
 
 function waitForHighlight(previewText: string): Promise<boolean> {
@@ -99,6 +137,14 @@ function waitForHighlight(previewText: string): Promise<boolean> {
 }
 
 async function findAndHighlightText(previewText: string): Promise<boolean> {
+  if (isAttributeHint(previewText)) {
+    if (highlightAttributeTarget(previewText, true)) {
+      return true;
+    }
+
+    return waitForAttributeTarget(previewText);
+  }
+
   const targetText = getMatchText(previewText);
   if (!targetText) {
     return false;
@@ -369,6 +415,10 @@ function findTextInPage(previewText: string): boolean {
 }
 
 function highlightPreviewText(previewText: string, scroll = true): boolean {
+  if (isAttributeHint(previewText) && highlightAttributeTarget(previewText, scroll)) {
+    return true;
+  }
+
   const targetText = getMatchText(previewText);
   if (!targetText) {
     return false;
@@ -406,6 +456,127 @@ function highlightPreviewText(previewText: string, scroll = true): boolean {
     fallbackElement.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   return true;
+}
+
+function waitForAttributeTarget(targetHint: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const end = Date.now() + 15000;
+    const check = (): void => {
+      if (highlightAttributeTarget(targetHint, true)) {
+        resolve(true);
+        return;
+      }
+
+      if (Date.now() >= end) {
+        resolve(false);
+        return;
+      }
+
+      window.setTimeout(check, 200);
+    };
+
+    check();
+  });
+}
+
+function highlightAttributeTarget(targetHint: string, scroll: boolean): boolean {
+  const normalizedHint = normalize(targetHint).toLowerCase();
+  if (!normalizedHint) {
+    return false;
+  }
+
+  const documents = [document, ...findEditableFrames().map(getFrameDocument).filter((value): value is Document => Boolean(value))];
+  for (const rootDocument of documents) {
+    const target = findAttributeTargetInRoot(rootDocument, normalizedHint);
+    if (!target) {
+      continue;
+    }
+
+    injectHighlightStyles(rootDocument);
+    target.id = HIGHLIGHT_ID;
+    target.classList.add("wand-remediation-highlight");
+    if (scroll) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    return true;
+  }
+
+  return false;
+}
+
+function findAttributeTargetInRoot(root: ParentNode, targetHint: string): HTMLElement | null {
+  const elements = Array.from(root.querySelectorAll<HTMLElement>("a[href], iframe[src], img[src], video[src], source[src]"));
+  return elements.find((element) => {
+    const values = ["aria-label", "title", "src", "href"]
+      .map((attribute) => normalize(element.getAttribute(attribute)).toLowerCase())
+      .filter(Boolean);
+    return values.some((value) =>
+      value === targetHint || value.includes(targetHint) || targetHint.includes(value) && value.length >= 12
+    );
+  }) ?? null;
+}
+
+function getCaptionSourceUrl(): string | null {
+  const documents = [document, ...findEditableFrames().map(getFrameDocument).filter((value): value is Document => Boolean(value))];
+  for (const rootDocument of documents) {
+    const highlighted = rootDocument.querySelector<HTMLElement>(`#${HIGHLIGHT_ID}, .wand-remediation-highlight`);
+    const highlightedMedia = getMediaElement(highlighted);
+    if (highlightedMedia) {
+      return toMediaPlatformUrl(highlightedMedia);
+    }
+  }
+
+  const media = documents.flatMap((rootDocument) =>
+    Array.from(rootDocument.querySelectorAll<HTMLElement>("iframe[src], video[src], source[src]"))
+  );
+  return media.length === 1 ? toMediaPlatformUrl(media[0]) : null;
+}
+
+function getMediaElement(element: HTMLElement | null): HTMLElement | null {
+  if (!element) {
+    return null;
+  }
+
+  return element.matches("iframe[src], video[src], source[src]")
+    ? element
+    : element.querySelector<HTMLElement>("iframe[src], video[src], source[src]");
+}
+
+function toMediaPlatformUrl(element: HTMLElement): string | null {
+  const rawUrl = element.getAttribute("src");
+  if (!rawUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(rawUrl, window.location.href);
+    const kalturaEntry = url.href.match(/(?:entry_id[\/=]|entryId=)([\w-]+)/i)?.[1];
+    if (kalturaEntry) {
+      return `https://mediaspace.utah.edu/media/t/${encodeURIComponent(kalturaEntry)}`;
+    }
+
+    const youtubeId = url.hostname.includes("youtube")
+      ? url.pathname.match(/\/embed\/([\w-]+)/)?.[1]
+      : undefined;
+    if (youtubeId) {
+      return `https://www.youtube.com/watch?v=${encodeURIComponent(youtubeId)}`;
+    }
+
+    const vimeoId = url.hostname.includes("vimeo")
+      ? url.pathname.match(/(?:video\/)?(\d+)/)?.[1]
+      : undefined;
+    if (vimeoId) {
+      return `https://vimeo.com/${vimeoId}`;
+    }
+
+    return url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function isAttributeHint(value: string): boolean {
+  return /^(?:https?:)?\/\//i.test(value.trim());
 }
 
 function highlightEditorText(targetText: string, scroll: boolean): boolean {
@@ -665,7 +836,7 @@ function injectHighlightStyles(rootDocument: Document): void {
   style.id = "wand-highlight-style";
   style.textContent = `
     .wand-remediation-highlight {
-      outline: 4px solid #facc15 !important;
+      outline: 4px solid #FFB81D !important;
       outline-offset: 4px !important;
       background: #fef3c7 !important;
     }

@@ -5,6 +5,7 @@ const WORKSPACE_TAB_MAX_AGE_MS = 15000;
 let workspaceSource: {
   tabId: number;
   createdAt: number;
+  courseScope: string;
 } | null = null;
 
 type RuntimeMessage = {
@@ -22,9 +23,15 @@ export function initializeWorkspaceRouting(): void {
       return false;
     }
 
+    const courseScope = getCanvasCourseScope(sender.tab.url);
+    if (!courseScope) {
+      return false;
+    }
+
     workspaceSource = {
       tabId: sender.tab.id,
       createdAt: Date.now(),
+      courseScope,
     };
 
     return false;
@@ -52,9 +59,27 @@ function isWorkspaceTarget(tab: chrome.tabs.Tab, url: string): boolean {
     return false;
   }
 
-  if (tab.openerTabId !== workspaceSource!.tabId) {
+  if (!url.startsWith(workspaceSource!.courseScope)) {
     return false;
   }
 
-  return /^https:\/\/[^/]+\.instructure\.com\//.test(url);
+  return tab.openerTabId === undefined || tab.openerTabId === workspaceSource!.tabId;
+}
+
+function getCanvasCourseScope(url: string | undefined): string | null {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const coursePath = parsed.pathname.match(/^\/courses\/\d+/)?.[0];
+    if (!parsed.hostname.endsWith(".instructure.com") || !coursePath) {
+      return null;
+    }
+
+    return `${parsed.origin}${coursePath}/`;
+  } catch {
+    return null;
+  }
 }

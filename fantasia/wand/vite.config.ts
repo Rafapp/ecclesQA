@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => ({
       input: {
         content: "src/content/index.ts",
         background: "src/background/index.ts",
+        popup: "src/popup/index.ts",
       },
       output: {
         dir: "dist",

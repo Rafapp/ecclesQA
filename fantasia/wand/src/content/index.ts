@@ -1,18 +1,34 @@
-import { initializeCanvasHighlighter } from "./canvasHighlighter";
+import { applyBoldCueToSelection, initializeCanvasHighlighter, openCaptionSource } from "./canvasHighlighter";
 import { initializeDevReload } from "./devReload";
-import { isTopFrame, listenForCanvasSaved, listenForFrameCommands, listenForFrameSnapshots, listenForWorkspaceUrls, postCommandToFrames, postSnapshotToTop } from "./frameBridge";
+import { isTopFrame, listenForActionState, listenForActionSuccess, listenForCanvasSaved, listenForFrameCommands, listenForFrameSnapshots, listenForRemediationErrors, listenForWorkspaceUrls, postActionStateToTop, postActionSuccessToTop, postCanvasSavedToTop, postCommandToFrames, postRemediationErrorToTop, postSnapshotToTop } from "./frameBridge";
 import { initializeHandlers } from "./handlers";
-import { createPanel, updatePanelSnapshot } from "./panel";
+import { createPanel, setPanelBusy, showPanelError, showPanelSuccess, updatePanelSnapshot } from "./panel";
+import { refreshUdoitCaptionStatus } from "./udoitCaptionRemediator";
 import { initializeUdoitDetector } from "./udoitDetector";
-import { startUdoitRemediation } from "./udoitRemediator";
+import { confirmUdoitWorkspaceOpened, startUdoitRemediation } from "./udoitRemediator";
+import { improveUdoitLinkText } from "./udoitLinkRemediator";
+import { improveUdoitImageAltText } from "./udoitImageAltRemediator";
 import { closeWorkspace, initializeWorkspace, openWorkspace } from "./workspace";
 import { wandConfig } from "../shared/config";
-import { ADVANCE_PENDING_STORAGE_KEY, REMEDIATION_STORAGE_KEY } from "../shared/remediation";
+import { ADVANCE_PENDING_STORAGE_KEY, getRemediationDefinition, REMEDIATION_STORAGE_KEY } from "../shared/remediation";
 import { normalize } from "../shared/utils";
 
+const WAND_ENABLED_STORAGE_KEY = "wandEnabled";
 const topFrame = isTopFrame();
 let advanceInProgress = false;
 let latestFrameSnapshot = null as Parameters<typeof postSnapshotToTop>[0] | null;
+let latestUdoitSnapshot = null as Parameters<typeof postSnapshotToTop>[0] | null;
+let workspaceActive = false;
+let workspaceRemediationSignature = "";
+
+void initializeWand();
+
+async function initializeWand(): Promise<void> {
+  const settings = await chrome.storage.local.get(WAND_ENABLED_STORAGE_KEY);
+  if (settings[WAND_ENABLED_STORAGE_KEY] === false) {
+    console.info("[wand] Wand is turned off for UDOIT and Canvas pages.");
+    return;
+  }
 
 console.info("[wand] Content script loaded.", {
   topFrame,
@@ -24,30 +40,84 @@ initializeHandlers();
 void initializeCanvasHighlighter();
 initializeWorkspace();
 
-const panel = wandConfig.features.panel && topFrame ? createPanel(() => {
-  postCommandToFrames({ type: "start-remediation" });
-}) : null;
+const panel = wandConfig.features.panel && topFrame ? createPanel(
+  () => {
+    setPanelBusy(panel!, true, getRemediationBusyLabel(latestUdoitSnapshot?.remediation));
+    postCommandToFrames({ type: "start-remediation" });
+  },
+  () => {
+    setPanelBusy(panel!, true, "Marking as resolved and loading the next issue…");
+    postCommandToFrames({ type: "resolve-remediation" });
+  },
+  (action) => {
+    const labels = {
+      "apply-color-cue": "Adding a non-color cue…",
+      "open-caption-source": "Opening the video platform…",
+      "refresh-caption-status": "Checking captions again…",
+    };
+    setPanelBusy(panel!, true, labels[action]);
+    postCommandToFrames({ type: action });
+  }
+) : null;
+
+if (topFrame) {
+  window.addEventListener("wand:workspace-state", (event) => {
+    workspaceActive = event instanceof CustomEvent && Boolean(event.detail?.active);
+    workspaceRemediationSignature = workspaceActive
+      ? getRemediationSignature(latestUdoitSnapshot?.remediation)
+      : "";
+
+    if (workspaceActive) {
+      postCommandToFrames({ type: "workspace-opened" });
+      if (panel) {
+        if (latestUdoitSnapshot) {
+          updatePanelSnapshot(panel, latestUdoitSnapshot);
+        }
+        setPanelBusy(panel, false);
+      }
+    }
+  });
+}
 
 if (panel) {
   listenForWorkspaceUrls((url) => {
     openWorkspace(url);
   });
 
+  listenForRemediationErrors((message) => {
+    setPanelBusy(panel, false);
+    showPanelError(message);
+  });
+
+  listenForActionState((active, label) => {
+    setPanelBusy(panel, active, label);
+  });
+
+  listenForActionSuccess((message) => {
+    setPanelBusy(panel, false);
+    showPanelSuccess(message);
+  });
+
   listenForCanvasSaved(() => {
+    setPanelBusy(panel, true, "Saving and loading the next issue…");
     console.info("[wand] Canvas save signal received in top frame.", {
       url: window.location.href,
       hasDialog: Boolean(document.querySelector("[role='dialog']")),
     });
-    void chrome.storage.local.set({
-      [ADVANCE_PENDING_STORAGE_KEY]: Date.now(),
-    });
-    void chrome.storage.local.remove(REMEDIATION_STORAGE_KEY);
-    closeWorkspace();
-    postCommandToFrames({ type: "advance-remediation" });
+    void completeRemediation();
   });
 
   listenForFrameSnapshots((snapshot) => {
-    updatePanelSnapshot(panel, snapshot);
+    if (snapshot.pageKind === "udoit") {
+      latestUdoitSnapshot = snapshot;
+      updatePanelSnapshot(panel, snapshot);
+      syncWorkspaceWithRemediation(snapshot.remediation);
+      return;
+    }
+
+    if (!workspaceActive) {
+      updatePanelSnapshot(panel, snapshot);
+    }
   });
 
   initializeUdoitDetector((snapshot) => {
@@ -61,11 +131,31 @@ if (panel) {
 
   listenForFrameCommands((command) => {
     if (command.type === "start-remediation" && latestFrameSnapshot?.remediation) {
-      void startUdoitRemediation(latestFrameSnapshot.remediation);
+      void startCurrentRemediation(latestFrameSnapshot.remediation);
     }
 
     if (command.type === "advance-remediation" && (latestFrameSnapshot?.pageKind === "udoit" || window.location.hostname === "udoit3.ciditools.com")) {
       void consumePendingAdvance();
+    }
+
+    if (command.type === "resolve-remediation" && window.location.hostname === "udoit3.ciditools.com") {
+      void resolveCurrentRemediation();
+    }
+
+    if (command.type === "workspace-opened" && window.location.hostname === "udoit3.ciditools.com") {
+      confirmUdoitWorkspaceOpened();
+    }
+
+    if (command.type === "refresh-caption-status" && window.location.hostname === "udoit3.ciditools.com") {
+      void refreshUdoitCaptionStatus();
+    }
+
+    if (command.type === "apply-color-cue" && window.location.hostname.endsWith(".instructure.com")) {
+      applyColorCue();
+    }
+
+    if (command.type === "open-caption-source" && window.location.hostname.endsWith(".instructure.com")) {
+      void openCaptionPlatform();
     }
   });
 
@@ -79,6 +169,139 @@ if (panel) {
   });
 } else {
   initializeUdoitDetector(() => {});
+}
+
+function applyColorCue(): void {
+  postActionStateToTop(true, "Adding a non-color cue…");
+  if (!applyBoldCueToSelection()) {
+    postRemediationErrorToTop("Wand couldn't find selected Canvas text. Select the color-only text, then try again.");
+    postActionStateToTop(false);
+    return;
+  }
+
+  postActionSuccessToTop("Bold was added as a non-color cue. Review the result, then save in Canvas.");
+  postActionStateToTop(false);
+}
+
+async function openCaptionPlatform(): Promise<void> {
+  postActionStateToTop(true, "Opening the video platform…");
+  try {
+    if (!await openCaptionSource()) {
+      postRemediationErrorToTop("Wand couldn't identify the embedded video's platform. Open it from Canvas and flag this to the team.");
+      return;
+    }
+
+    postActionSuccessToTop("The video platform opened in a new tab.");
+  } finally {
+    postActionStateToTop(false);
+  }
+}
+}
+
+function syncWorkspaceWithRemediation(remediation: Parameters<typeof startUdoitRemediation>[0] | undefined): void {
+  if (!workspaceActive || !remediation) {
+    return;
+  }
+
+  const nextSignature = getRemediationSignature(remediation);
+  if (!nextSignature || !workspaceRemediationSignature) {
+    workspaceRemediationSignature = nextSignature;
+    return;
+  }
+
+  if (nextSignature === workspaceRemediationSignature) {
+    return;
+  }
+
+  workspaceRemediationSignature = nextSignature;
+  console.info("[wand] UDOIT issue changed while workspace was open. Synchronizing Canvas remediation.", {
+    issueType: remediation.issueType,
+    sourceTitle: remediation.sourceTitle,
+    issueIndex: remediation.issueIndex,
+  });
+  postCommandToFrames({ type: "start-remediation" });
+}
+
+function getRemediationBusyLabel(remediation: Parameters<typeof startUdoitRemediation>[0] | undefined): string {
+  return remediation
+    ? getRemediationDefinition(remediation.issueType)?.busyLabel ?? "Opening Canvas remediation…"
+    : "Opening Canvas remediation…";
+}
+
+function startCurrentRemediation(remediation: Parameters<typeof startUdoitRemediation>[0]): Promise<void> {
+  const workflow = getRemediationDefinition(remediation.issueType)?.workflow;
+  if (workflow === "linkText") {
+    return improveUdoitLinkText(remediation);
+  }
+  if (workflow === "imageAlt") {
+    return improveUdoitImageAltText(remediation);
+  }
+  return startUdoitRemediation(remediation);
+}
+
+async function completeRemediation(): Promise<void> {
+  await chrome.storage.local.set({
+    [ADVANCE_PENDING_STORAGE_KEY]: Date.now(),
+  });
+  await chrome.storage.local.remove(REMEDIATION_STORAGE_KEY);
+  closeWorkspace();
+  postCommandToFrames({ type: "advance-remediation" });
+}
+
+async function resolveCurrentRemediation(): Promise<void> {
+  postActionStateToTop(true, "Marking as resolved and loading the next issue…");
+  let handedOff = false;
+  try {
+    const manualResolution = await waitFor(() => getElementByText("span", "Manual Resolution"), 5000, 200);
+    if (!manualResolution) {
+      console.error("[wand] Manual Resolution control was not found.");
+      postRemediationErrorToTop("Wand couldn't find UDOIT's Manual Resolution control.");
+      return;
+    }
+
+    let confirmation = getManualResolutionCheckbox();
+    if (!confirmation) {
+      realClick(manualResolution);
+      confirmation = await waitFor(getManualResolutionCheckbox, 5000, 200);
+    }
+
+    if (!confirmation) {
+      console.error("[wand] Manual Resolution confirmation was not found.");
+      postRemediationErrorToTop("Wand couldn't confirm the manual resolution in UDOIT.");
+      return;
+    }
+
+    if (!confirmation.checked) {
+      realClick(confirmation);
+      await sleep(800);
+    }
+
+    postCanvasSavedToTop();
+    handedOff = true;
+  } finally {
+    if (!handedOff) {
+      postActionStateToTop(false);
+    }
+  }
+}
+
+function getManualResolutionCheckbox(): HTMLInputElement | null {
+  const label = Array.from(document.querySelectorAll<HTMLLabelElement>("label")).find((candidate) =>
+    normalize(candidate.textContent).includes("confirm this content")
+  );
+  if (!label) {
+    return null;
+  }
+
+  const inputId = label.htmlFor;
+  const input = inputId ? document.getElementById(inputId) : label.querySelector("input[type='checkbox']");
+  return input instanceof HTMLInputElement && input.type === "checkbox" ? input : null;
+}
+
+function getElementByText(selector: string, text: string): HTMLElement | null {
+  return Array.from(document.querySelectorAll<HTMLElement>(selector)).find((element) =>
+    normalize(element.textContent) === text
+  ) ?? null;
 }
 
 function listenForPendingAdvance(): void {
@@ -130,6 +353,7 @@ async function launchNextRemediation(previousSignature: string): Promise<void> {
 
   if (!nextRemediation) {
     console.info("[wand] Advanced UDOIT issue, but no next remediation became available.");
+    postActionStateToTop(false);
     return;
   }
 
@@ -138,7 +362,7 @@ async function launchNextRemediation(previousSignature: string): Promise<void> {
     sourceTitle: nextRemediation.sourceTitle,
     issueIndex: nextRemediation.issueIndex,
   });
-  await startUdoitRemediation(nextRemediation);
+  await startCurrentRemediation(nextRemediation);
 }
 
 function getRemediationSignature(remediation: Parameters<typeof startUdoitRemediation>[0] | undefined): string {
@@ -169,6 +393,7 @@ async function clickNextIssueWhenReady(): Promise<boolean> {
       url: window.location.href,
       buttons: Array.from(document.querySelectorAll<HTMLButtonElement>("button")).map((button) => normalize(button.textContent)).filter(Boolean).slice(0, 12),
     });
+    postRemediationErrorToTop("Wand couldn't advance to the next UDOIT issue.");
     return false;
   }
 

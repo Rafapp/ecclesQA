@@ -1,6 +1,6 @@
 const DEV_RELOAD_MODE = "development";
 const DEV_RELOAD_URL = "http://127.0.0.1:5174/events";
-const DEV_RELOAD_MESSAGE = "wand:dev-reload-extension";
+const WAND_RELOAD_EXTENSION_MESSAGE = "wand:reload-extension";
 
 let devReloadSource: EventSource | null = null;
 let reportedDisconnect = false;
@@ -33,7 +33,7 @@ export function initializeDevReload(): void {
   });
 
   devReloadSource.addEventListener("reload", () => {
-    void chrome.runtime.sendMessage({ type: DEV_RELOAD_MESSAGE }).catch(() => {
+    void chrome.runtime.sendMessage({ type: WAND_RELOAD_EXTENSION_MESSAGE }).catch(() => {
       window.location.reload();
     });
   });

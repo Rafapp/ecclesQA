@@ -1,12 +1,13 @@
 {
   "name": "wand",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:watch": "vite build --watch --mode development",
     "build": "vite build",
+    "test": "node --test --experimental-strip-types tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "package": "node scripts/package.mjs"
   },

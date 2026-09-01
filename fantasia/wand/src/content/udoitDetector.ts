@@ -1,7 +1,8 @@
 import { POLL_INTERVAL_MS } from "../shared/config";
-import { isSupportedRemediation } from "../shared/remediation";
+import { getRemediationDefinition, isSupportedRemediation } from "../shared/remediation";
 import type { IssueSummary, PageKind, PageSnapshot } from "../shared/types";
 import { normalize } from "../shared/utils";
+import { getUdoitSourceTitle } from "./udoitControls";
 
 const ROW_SELECTOR = "tbody tr, [role='row']";
 const COUNTER_SELECTOR = "li, [role='status'], [aria-live], [class*='pagination' i], [class*='counter' i]";
@@ -49,14 +50,19 @@ export function initializeUdoitDetector(onSnapshot: (snapshot: PageSnapshot) => 
 
 function getPageSnapshot(): PageSnapshot {
   const pageKind = getPageKind();
-  const remediation = pageKind === "udoit" ? getRemediationContext() : undefined;
-  const udoitView = pageKind === "udoit" ? getUdoitView(remediation) : undefined;
-  const issues = pageKind === "udoit" ? getVisibleIssues() : [];
+  const dialog = pageKind === "udoit" ? getVisibleDialog() : null;
+  const activeIssueType = dialog ? getModalIssueType(dialog) : undefined;
+  const remediation = dialog && activeIssueType && isSupportedRemediation(activeIssueType)
+    ? getRemediationContext(dialog, activeIssueType)
+    : undefined;
+  const udoitView = pageKind === "udoit" ? getUdoitView(dialog) : undefined;
+  const issues = pageKind === "udoit" ? getVisibleIssues(remediation) : [];
   const detectedCount = pageKind === "udoit" ? getDetectedIssueCount(issues) : 0;
 
   return {
     pageKind,
     udoitView,
+    activeIssueType,
     issueCount: detectedCount,
     issues,
     remediation,
@@ -79,8 +85,7 @@ function getPageKind(): PageKind {
   return "unknown";
 }
 
-function getVisibleIssues(): IssueSummary[] {
-  const remediation = getRemediationContext();
+function getVisibleIssues(remediation: PageSnapshot["remediation"]): IssueSummary[] {
   if (remediation) {
     return [{
       label: `${remediation.sourceTitle} - ${remediation.issueType}`,
@@ -121,9 +126,13 @@ function getVisibleIssues(): IssueSummary[] {
   return issues;
 }
 
-function getUdoitView(remediation: ReturnType<typeof getRemediationContext>): "scorecard" | "issueList" | "fixModal" | "unknown" {
-  if (remediation) {
+function getUdoitView(dialog: HTMLElement | null): "scorecard" | "issueList" | "fixModal" | "unknown" {
+  if (dialog) {
     return "fixModal";
+  }
+
+  if (hasReviewAction()) {
+    return "issueList";
   }
 
   if (getScorecardTable()) {
@@ -137,22 +146,13 @@ function getUdoitView(remediation: ReturnType<typeof getRemediationContext>): "s
   return "unknown";
 }
 
-function getRemediationContext() {
-  const dialog = document.querySelector<HTMLElement>("[role='dialog']");
-  if (!dialog || !isVisible(dialog)) {
-    return undefined;
-  }
-
-  const issueType = getModalIssueType(dialog);
-  if (!issueType || !isSupportedRemediation(issueType)) {
-    return undefined;
-  }
-
+function getRemediationContext(dialog: HTMLElement, issueType: string) {
   const sourceTitle = getModalSourceTitle(dialog);
   const previewText = getModalPreviewText(dialog);
   const { issueIndex, issueTotal } = getModalIssueCounter(dialog);
+  const definition = getRemediationDefinition(issueType);
 
-  if (!sourceTitle || !previewText) {
+  if (!sourceTitle || !previewText && definition?.requiresPreview !== false) {
     return undefined;
   }
 
@@ -175,17 +175,39 @@ function getModalIssueType(dialog: HTMLElement): string {
     .map((element) => normalize(element.innerText || element.textContent))
     .filter(Boolean);
 
-  return [...headings, ...textCandidates].find(isSupportedRemediation) ?? "";
+  const candidates = [...headings, ...textCandidates];
+  const supportedIssue = candidates.find(isSupportedRemediation);
+  if (supportedIssue) {
+    return supportedIssue;
+  }
+
+  return candidates.find(isLikelyIssueType) ?? "";
+}
+
+function getVisibleDialog(): HTMLElement | null {
+  const dialogs = Array.from(document.querySelectorAll<HTMLElement>("[role='dialog']"));
+  return dialogs.find(isVisible) ?? null;
+}
+
+function isLikelyIssueType(text: string): boolean {
+  if (text.length < 8 || text.length > 240) {
+    return false;
+  }
+
+  if (/^(review|ufixit|manual resolution|html|expand preview|issue \d+ of \d+)$/i.test(text)) {
+    return false;
+  }
+
+  return ISSUE_TEXT_PATTERN.test(text);
 }
 
 function getModalSourceTitle(dialog: HTMLElement): string {
-  const buttons = Array.from(dialog.querySelectorAll<HTMLButtonElement>("button"));
-  const sourceButton = buttons.find((button) => {
-    const label = normalize(button.innerText || button.textContent);
-    return label && !/^(close|save|previous issue|next issue|html|expand preview)$/i.test(label);
-  });
+  return getUdoitSourceTitle(dialog);
+}
 
-  return normalize(sourceButton?.innerText || sourceButton?.textContent);
+function hasReviewAction(): boolean {
+  const controls = Array.from(document.querySelectorAll<HTMLElement>("button, [role='button'], a[href]"));
+  return controls.some((control) => isVisible(control) && normalize(control.innerText || control.textContent) === "Review");
 }
 
 function getModalSourceKind(dialog: HTMLElement): string {
@@ -195,7 +217,20 @@ function getModalSourceKind(dialog: HTMLElement): string {
 
 function getModalPreviewText(dialog: HTMLElement): string {
   const highlighted = dialog.querySelector<HTMLElement>(".highlighted");
-  return normalize(highlighted?.innerText || highlighted?.textContent);
+  const text = normalize(highlighted?.innerText || highlighted?.textContent);
+  if (text) {
+    return text;
+  }
+
+  const media = highlighted?.matches("a[href], iframe[src], img[src], video[src], source[src]")
+    ? highlighted
+    : highlighted?.querySelector<HTMLElement>("a[href], iframe[src], img[src], video[src], source[src]");
+  return normalize(
+    media?.getAttribute("aria-label") ||
+    media?.getAttribute("title") ||
+    media?.getAttribute("src") ||
+    media?.getAttribute("href")
+  );
 }
 
 function getModalIssueCounter(dialog: HTMLElement): { issueIndex: number | null; issueTotal: number | null } {
@@ -426,6 +461,7 @@ function isInsideWandPanel(element: HTMLElement): boolean {
 function getSnapshotSignature(snapshot: PageSnapshot): string {
   return JSON.stringify({
     pageKind: snapshot.pageKind,
+    activeIssueType: snapshot.activeIssueType,
     issueCount: snapshot.issueCount,
     issues: snapshot.issues.map((issue) => issue.label),
     remediation: snapshot.remediation,

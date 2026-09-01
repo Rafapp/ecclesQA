@@ -30,6 +30,7 @@ export type RemediationContext = {
 export type PageSnapshot = {
   pageKind: PageKind;
   udoitView?: UdoitView;
+  activeIssueType?: string;
   issueCount: number;
   issues: IssueSummary[];
   remediation?: RemediationContext;

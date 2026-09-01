@@ -1,7 +1,9 @@
-import { initializeBackgroundDevReload } from "./devReload";
+import { initializeExtensionReload } from "./reload";
+import { initializeMediaPlatformRouting } from "./media";
 import { initializeWorkspaceRouting } from "./workspace";
 
-initializeBackgroundDevReload();
+initializeExtensionReload();
+initializeMediaPlatformRouting();
 initializeWorkspaceRouting();
 
 chrome.runtime.onInstalled.addListener(() => {

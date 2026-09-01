@@ -1,20 +1,30 @@
 import panelStyles from "../content.css?raw";
+import { getRemediationDefinition, isSupportedRemediation, SUPPORTED_REMEDIATIONS, type WorkspaceAction } from "../shared/remediation";
 import type { PageSnapshot } from "../shared/types";
 
 const PANEL_ID = "wand-panel";
 const STYLE_ID = "wand-panel-style";
 const ACTION_ID = "wand-remediate-action";
+const RESOLVE_ID = "wand-resolve-action";
 const TOGGLE_ID = "wand-panel-toggle";
 const PANEL_TITLE = "Wand";
 const VERSION_LABEL = `Version ${__APP_VERSION__}`;
 const ICON_URL = chrome.runtime.getURL("icons/48.png");
 const COLLAPSED_CLASS = "wand-panel--collapsed";
+const TOAST_ID = "wand-panel-toast";
+const WORKSPACE_ACTION_ATTRIBUTE = "data-wand-workspace-action";
 
 let workspaceActive = false;
 let lastSnapshot: PageSnapshot | null = null;
 let collapsed = false;
+let busy = false;
+let busyLabel = "Working…";
 
-export function createPanel(onRemediate?: () => void): HTMLElement {
+export function createPanel(
+  onRemediate?: () => void,
+  onResolve?: () => void,
+  onWorkspaceAction?: (action: WorkspaceAction) => void
+): HTMLElement {
   injectPanelStyles();
 
   const existingPanel = document.getElementById(PANEL_ID);
@@ -39,12 +49,24 @@ export function createPanel(onRemediate?: () => void): HTMLElement {
     toggle.setAttribute("aria-label", collapsed ? "Expand Wand panel" : "Collapse Wand panel");
   });
   panel.append(toggle);
+  document.addEventListener("pointerdown", (event) => {
+    closeSupportedErrorsWhenClickingElsewhere(panel, event.target);
+  });
 
-  if (onRemediate) {
+  if (onRemediate || onResolve) {
     panel.addEventListener("click", (event) => {
       const target = event.target instanceof HTMLElement ? event.target : null;
       if (target?.id === ACTION_ID) {
-        onRemediate();
+        onRemediate?.();
+      }
+
+      if (target?.id === RESOLVE_ID) {
+        onResolve?.();
+      }
+
+      const workspaceAction = target?.getAttribute(WORKSPACE_ACTION_ATTRIBUTE) as WorkspaceAction | null;
+      if (workspaceAction) {
+        onWorkspaceAction?.(workspaceAction);
       }
     });
   }
@@ -111,8 +133,13 @@ function createMainContent(snapshot: PageSnapshot | null): HTMLElement {
   const main = document.createElement("div");
   main.className = "wand-panel__main";
 
+  if (busy) {
+    main.append(createBusyState());
+    return main;
+  }
+
   if (workspaceActive) {
-    main.append(createWorkspaceAction());
+    main.append(createWorkspaceAction(snapshot));
     return main;
   }
 
@@ -127,12 +154,22 @@ function createMainContent(snapshot: PageSnapshot | null): HTMLElement {
   }
 
   if (snapshot.udoitView === "scorecard") {
-    main.append(createGuidance("Please select an issue type to use Wand.", "needed"));
+    main.append(createGuidanceWithSupportedErrors("Please select an issue type to use Wand.", "needed"));
+    return main;
+  }
+
+  if (snapshot.udoitView === "fixModal" && snapshot.activeIssueType && !isSupportedRemediation(snapshot.activeIssueType)) {
+    main.append(createGuidanceWithSupportedErrors("Format issue not supported yet. If you'd like support, flag it to the team!", "error"));
+    return main;
+  }
+
+  if (snapshot.udoitView === "fixModal" && !snapshot.remediation) {
+    main.append(createGuidanceWithSupportedErrors("Wand couldn't identify this format issue. Please flag it to the team!", "error"));
     return main;
   }
 
   if (!snapshot.remediation) {
-    main.append(createGuidance("Open a Review item to remediate it with Wand.", "needed"));
+    main.append(createGuidanceWithSupportedErrors("Open a Review item to remediate it with Wand.", "needed"));
     return main;
   }
 
@@ -144,16 +181,35 @@ function createMainContent(snapshot: PageSnapshot | null): HTMLElement {
   return main;
 }
 
-function createWorkspaceAction(): HTMLElement {
+function createWorkspaceAction(snapshot: PageSnapshot | null): HTMLElement {
   const wrapper = document.createElement("div");
   wrapper.className = "wand-panel__workspace-action";
 
-  const guidance = createGuidance("Awaiting remediation and saving ... or", "needed");
+  const definition = snapshot?.remediation
+    ? getRemediationDefinition(snapshot.remediation.issueType)
+    : undefined;
+  const guidance = createGuidance(
+    definition?.workspaceGuidance ?? "Complete the remediation in Canvas, then save your change.",
+    "needed"
+  );
   const button = document.createElement("button");
+  button.id = RESOLVE_ID;
   button.type = "button";
-  button.textContent = "Mark as resolved";
+  button.textContent = "Mark as resolved and go to next";
 
-  wrapper.replaceChildren(guidance, button);
+  const controls = document.createElement("div");
+  controls.className = "wand-panel__workspace-controls";
+  for (const action of definition?.workspaceActions ?? []) {
+    const actionButton = document.createElement("button");
+    actionButton.type = "button";
+    actionButton.className = "wand-panel__secondary-action";
+    actionButton.setAttribute(WORKSPACE_ACTION_ATTRIBUTE, action.action);
+    actionButton.textContent = action.label;
+    controls.append(actionButton);
+  }
+  controls.append(button);
+
+  wrapper.replaceChildren(guidance, controls);
   return wrapper;
 }
 
@@ -169,6 +225,92 @@ function createGuidance(text: string, tone: "error" | "info" | "needed"): HTMLEl
   guidance.className = `wand-panel__guidance wand-panel__text--${tone}`;
   guidance.textContent = text;
   return guidance;
+}
+
+function createGuidanceWithSupportedErrors(text: string, tone: "error" | "info" | "needed"): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = "wand-panel__guidance-group";
+  wrapper.replaceChildren(createGuidance(text, tone), createSupportedErrors());
+  return wrapper;
+}
+
+function createSupportedErrors(): HTMLDetailsElement {
+  const details = document.createElement("details");
+  details.className = "wand-panel__supported";
+
+  const summary = document.createElement("summary");
+  summary.textContent = getSupportedErrorsSummary();
+
+  const list = document.createElement("ul");
+  for (const remediation of SUPPORTED_REMEDIATIONS) {
+    const item = document.createElement("li");
+    item.textContent = remediation;
+    list.append(item);
+  }
+
+  details.replaceChildren(summary, list);
+  return details;
+}
+
+function getSupportedErrorsSummary(): string {
+  return "In development: Click to show current remediation support";
+}
+
+export function setPanelBusy(panel: HTMLElement, active: boolean, label = "Working…"): void {
+  busy = active;
+  busyLabel = label || "Working…";
+  panel.setAttribute("aria-busy", String(active));
+  renderPanel(panel, lastSnapshot);
+}
+
+function createBusyState(): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = "wand-panel__busy";
+
+  const label = document.createElement("div");
+  label.className = "wand-panel__busy-label";
+  label.textContent = busyLabel;
+
+  const track = document.createElement("div");
+  track.className = "wand-panel__progress";
+  track.setAttribute("role", "progressbar");
+  track.setAttribute("aria-label", busyLabel);
+
+  const indicator = document.createElement("div");
+  indicator.className = "wand-panel__progress-indicator";
+  track.append(indicator);
+  wrapper.replaceChildren(label, track);
+  return wrapper;
+}
+
+export function showPanelError(message: string): void {
+  showPanelToast(message, "error");
+}
+
+export function showPanelSuccess(message: string): void {
+  showPanelToast(message, "success");
+}
+
+function showPanelToast(message: string, tone: "error" | "success"): void {
+  document.getElementById(TOAST_ID)?.remove();
+
+  const toast = document.createElement("div");
+  toast.id = TOAST_ID;
+  toast.className = `wand-panel__toast wand-panel__toast--${tone}`;
+  toast.setAttribute("role", tone === "error" ? "alert" : "status");
+  toast.textContent = message;
+  document.documentElement.append(toast);
+
+  window.setTimeout(() => toast.remove(), 7000);
+}
+
+function closeSupportedErrorsWhenClickingElsewhere(panel: HTMLElement, target: EventTarget | null): void {
+  const details = panel.querySelector<HTMLDetailsElement>(".wand-panel__supported[open]");
+  if (!details || target instanceof Node && details.contains(target)) {
+    return;
+  }
+
+  details.open = false;
 }
 
 function getStatusClass(snapshot: PageSnapshot): string {
@@ -193,11 +335,7 @@ function getPageLabel(snapshot: PageSnapshot): string {
 }
 
 function getActionLabel(issueType: string): string {
-  if (/styles might be used/i.test(issueType)) {
-    return "Remediate styled headings";
-  }
-
-  return "Remediate current issue";
+  return getRemediationDefinition(issueType)?.actionLabel ?? "Remediate current issue";
 }
 
 function injectPanelStyles(): void {
