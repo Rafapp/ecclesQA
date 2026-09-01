@@ -8,11 +8,14 @@
 
 Project Fantasia is a suite of tools that help the Eccles instructional design team find and fix all kinds of course issues and automate repetitive work, across UDOIT, Canvas, and beyond. It has three parts:
 
+> [!TIP]
+> See the **[data-driven roadmap](ROADMAP.md)** for priorities, status, evidence, and release criteria across all three applications.
+
 | Tool | What it is | Status |
 | --- | --- | :-: |
-| 🪄 **Wand** | Chrome extension that spots issues and helps fix them right inside UDOIT and Canvas | 🟢 **Available now (v1.0.1)** |
-| 🔮 **Magic** | Windows desktop app for running accessibility and data automation scripts on your own machine | 🟢 **Available now (v1.0.0)** |
-| 🧙 **Sorcerer** | Server + web dashboard for sending automation jobs in bulk (auto-tag PDFs and more) | ⚪ Planned |
+| 🪄 **Wand** | Chrome extension that spots issues and helps fix them right inside UDOIT and Canvas | **🧪 In testing (v1.1.0)** |
+| 🔮 **Magic** | Windows desktop app for running accessibility and data automation scripts on your own machine | **✅ Shipped (v1.0.0)** |
+| 🧙 **Sorcerer** | Server + web dashboard for sending automation jobs in bulk (auto-tag PDFs and more) | **📋 Planned** |
 
 > This guide covers both **Wand** and **Magic**, the tools you can use today.
 
@@ -20,7 +23,7 @@ Project Fantasia is a suite of tools that help the Eccles instructional design t
 
 # 🪄 Wand
 
-**Fantasia v1.0.0**
+**Wand v1.1.0**
 
 Wand is a Chrome extension that spots course issues in UDOIT and helps you fix them in Canvas, fast. It starts with accessibility and grows to cover more kinds of issues and automations over time.
 
@@ -29,8 +32,8 @@ Wand is a Chrome extension that spots course issues in UDOIT and helps you fix t
 ## ⬇️ Download
 
 1. Go to the **[Releases page](../../releases)**.
-2. Open the latest release (**Fantasia v1.0.0**).
-3. Under **Assets**, click **`wand-extension-v1.0.0.zip`** to download it.
+2. Open the latest Wand release (**v1.1.0**).
+3. Under **Assets**, click **`wand-extension-v1.1.0.zip`** to download it.
 
 That's it for downloading. Now let's install it. 👇
 
@@ -41,7 +44,7 @@ That's it for downloading. Now let's install it. 👇
 > 💡 You only do this once. It takes about 2 minutes. No tech skills needed.
 
 ### Step 1. Unzip the file you downloaded
-Find **`wand-extension-v1.0.0.zip`** in your **Downloads** folder. **Right-click it, then "Extract All"** (Windows) or **double-click it** (Mac). You'll get a folder. Remember where it is!
+Find **`wand-extension-v1.1.0.zip`** in your **Downloads** folder. **Right-click it, then "Extract All"** (Windows) or **double-click it** (Mac). You'll get a folder. Remember where it is!
 
 <!-- 📸 SCREENSHOT HERE: the unzipped folder showing manifest.json, content.js, etc. -->
 
@@ -88,6 +91,7 @@ You'll see **Wand** appear in your list of extensions. 🎉
 | I don't see the Wand bar | Refresh the UDOIT/Canvas tab after installing. |
 | "Load unpacked" did nothing | Make sure you picked the **unzipped folder**, not the `.zip` file. |
 | It disappeared after restart | Re-open `chrome://extensions` and check it's still toggled **ON**. |
+| A remediation opens the wrong content | Record the UDOIT issue name, source title, Wand toast, and any `[wand]` browser-console entry, then flag it to the team. |
 
 Still stuck? Ping the team. 💬
 
@@ -160,16 +164,18 @@ Still stuck? Ping the team. 💬
 
 ---
 
-## 🗺️ Roadmap, our "Top 5" remediations
+## 🗺️ Current Wand milestone
 
-We're starting with accessibility. These are the first five UDOIT issues we're teaching Wand to fix automatically, in priority order, with more issue types and automations to follow:
+These five UDOIT issue types account for 53,669 active findings—74.2% of the measured active Canvas backlog. Implementation is complete and field validation is in progress:
 
 | # | Remediation | Status |
 | :-: | --- | --- |
-| 1 | Styles might be used instead of semantic markup for structure | 🟡 **Done, in testing** |
-| 2 | Link has nondescript text | ⚪ Planned |
-| 3 | Potential use of color alone to communicate information | ⚪ Planned |
-| 4 | Alternative text uses filename rather than a descriptive label | ⚪ Planned |
-| 5 | Video captions appear to be automatically generated and may contain errors | ⚪ Planned |
+| 1 | Styles might be used instead of semantic markup for structure | **🧪 In testing** |
+| 2 | Link has nondescript text | **🧪 In testing** |
+| 3 | Potential use of color alone to communicate information | **🧪 In testing** |
+| 4 | Alternative text uses filename rather than a descriptive label | **🧪 In testing** |
+| 5 | Video captions appear to be automatically generated and may contain errors | **🧪 In testing** |
 
-**Legend:** 🟢 Shipped &nbsp;•&nbsp; 🟡 Done, in testing &nbsp;•&nbsp; ⚪ Planned
+**Legend:** ✅ Shipped &nbsp;•&nbsp; 🧪 In testing &nbsp;•&nbsp; 🚧 In progress &nbsp;•&nbsp; 📋 Planned &nbsp;•&nbsp; ⏸️ Deferred
+
+Wand intentionally leaves file-based PDF, Word, PowerPoint, and spreadsheet remediation to Magic and Sorcerer. See the **[full three-application roadmap](ROADMAP.md)** for the next prioritized work and [`fantasia/wand/TESTING.md`](fantasia/wand/TESTING.md) for the current signed-in regression checklist.

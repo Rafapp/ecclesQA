@@ -16,6 +16,9 @@ BASE_DIR = Path(__file__).resolve().parent
 CANVAS_CSV = BASE_DIR / "Canvas issues.csv"
 FILE_CSV = BASE_DIR / "file_issues.csv"
 OUT_DIR = BASE_DIR / "issue_report_output"
+BRAND_PRIMARY = "#BE0000"
+BRAND_SECONDARY = "#FFB81D"
+BRAND_NEUTRAL = "#5F5F5F"
 
 
 def read_csv(path: Path) -> pd.DataFrame:
@@ -39,10 +42,10 @@ def numeric(series: pd.Series) -> pd.Series:
 def save_bar(series: pd.Series, title: str, xlabel: str, output: Path, horizontal: bool = True) -> None:
     fig, ax = plt.subplots(figsize=(11, 6))
     if horizontal:
-        series.sort_values().plot(kind="barh", ax=ax, color="#2563eb")
+        series.sort_values().plot(kind="barh", ax=ax, color=BRAND_PRIMARY)
         ax.set_xlabel(xlabel)
     else:
-        series.plot(kind="bar", ax=ax, color="#2563eb")
+        series.plot(kind="bar", ax=ax, color=BRAND_PRIMARY)
         ax.set_ylabel(xlabel)
         ax.tick_params(axis="x", labelrotation=20)
     ax.set_title(title)
@@ -54,8 +57,15 @@ def save_bar(series: pd.Series, title: str, xlabel: str, output: Path, horizonta
 
 def save_pie(series: pd.Series, title: str, output: Path) -> None:
     fig, ax = plt.subplots(figsize=(7, 7))
-    series.plot(kind="pie", ax=ax, autopct="%1.1f%%", startangle=90)
-    ax.set_ylabel("")
+    total = series.sum()
+    wedges, _, _ = ax.pie(
+        series.values,
+        autopct=lambda percent: f"{percent:.1f}%" if percent >= 2 else "",
+        colors=[BRAND_PRIMARY, BRAND_SECONDARY, BRAND_NEUTRAL],
+        startangle=90,
+    )
+    labels = [f"{label}: {int(value):,} ({value / total:.1%})" for label, value in series.items()]
+    ax.legend(wedges, labels, loc="lower center", bbox_to_anchor=(0.5, -0.08), ncol=1)
     ax.set_title(title)
     fig.tight_layout()
     fig.savefig(output, dpi=160)
@@ -147,7 +157,7 @@ def main() -> int:
         *file_lines,
         "",
         "Charts",
-        *[f"- {path}" for path in {**canvas_charts, **file_charts}.values()],
+        *[f"- {path.name}" for path in {**canvas_charts, **file_charts}.values()],
     ]
 
     report_path = OUT_DIR / "summary.txt"

@@ -15,3 +15,11 @@ File-related issues
 - Most affected file type: PDF (19,822)
 - Largest file issue: PDF - File is missing a title element (8,994)
 - File issues by type: PDF=19,822, DOC=16,101, PPT=7,603, XLS=349
+
+Charts
+- canvas_status_totals.png
+- canvas_active_by_severity.png
+- canvas_top_active_issues.png
+- file_totals_by_type.png
+- file_top_issues.png
+- file_scanned_courses_by_type.png
