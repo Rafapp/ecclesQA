@@ -1,1 +1,0 @@
-# pptx accessibility modules package

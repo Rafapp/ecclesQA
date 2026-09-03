@@ -1,181 +1,78 @@
-<div align="center">
+# Project Fantasia
 
-# ✨ Project Fantasia
+Issue inspection and automation tools for the Eccles School of Business Instructional Design team.
 
-### Issue-fixing and automation tools for the Eccles School of Business Instructional Design team
+## Active Project
 
-</div>
+`fantasia/wand` is the active production project. Wand is a Manifest V3 Chrome extension for UDOIT and Canvas. Its current goal is to help reviewers inspect supported UDOIT findings, open the matching Canvas content, highlight the target, and move through the remediation workflow with clear reviewer control.
 
-Project Fantasia is a suite of tools that help the Eccles instructional design team find and fix all kinds of course issues and automate repetitive work, across UDOIT, Canvas, and beyond. It has three parts:
+Retired experiments and historical versions are kept in Git history, tags, and GitHub releases instead of source-tree snapshots.
 
-> [!TIP]
-> See the **[data-driven roadmap](ROADMAP.md)** for priorities, status, evidence, and release criteria across all three applications.
+## Wand
 
-| Tool | What it is | Status |
-| --- | --- | :-: |
-| 🪄 **Wand** | Chrome extension that spots issues and helps fix them right inside UDOIT and Canvas | **🧪 In testing (v1.1.0)** |
-| 🔮 **Magic** | Windows desktop app for running accessibility and data automation scripts on your own machine | **✅ Shipped (v1.0.0)** |
-| 🧙 **Sorcerer** | Server + web dashboard for sending automation jobs in bulk (auto-tag PDFs and more) | **📋 Planned** |
+Current package version: `1.1.0`
 
-> This guide covers both **Wand** and **Magic**, the tools you can use today.
+### Install From A Release
 
----
+1. Go to the [Releases page](../../releases).
+2. Download the latest `wand-extension-*.zip` asset.
+3. Unzip it locally.
+4. Open `chrome://extensions` in Chrome.
+5. Turn on Developer mode.
+6. Click Load unpacked and choose the unzipped extension folder.
 
-# 🪄 Wand
+### Use
 
-**Wand v1.1.0**
+1. Open a course in UDOIT and run a scan.
+2. Open a supported issue.
+3. Use the Wand bar at the bottom of the page to open the matching Canvas content.
+4. Review the highlighted target and apply the fix in Canvas.
 
-Wand is a Chrome extension that spots course issues in UDOIT and helps you fix them in Canvas, fast. It starts with accessibility and grows to cover more kinds of issues and automations over time.
+Wand runs only on UDOIT and Canvas pages declared in the extension manifest.
 
----
+## Development
 
-## ⬇️ Download
+Run commands from `fantasia/wand`:
 
-1. Go to the **[Releases page](../../releases)**.
-2. Open the latest Wand release (**v1.1.0**).
-3. Under **Assets**, click **`wand-extension-v1.1.0.zip`** to download it.
-
-That's it for downloading. Now let's install it. 👇
-
----
-
-## 🚀 Install in Chrome (5 easy steps)
-
-> 💡 You only do this once. It takes about 2 minutes. No tech skills needed.
-
-### Step 1. Unzip the file you downloaded
-Find **`wand-extension-v1.1.0.zip`** in your **Downloads** folder. **Right-click it, then "Extract All"** (Windows) or **double-click it** (Mac). You'll get a folder. Remember where it is!
-
-<!-- 📸 SCREENSHOT HERE: the unzipped folder showing manifest.json, content.js, etc. -->
-
-### Step 2. Open Chrome's extensions page
-In Chrome, click the address bar at the top, type this, and press **Enter**:
-
-```
-chrome://extensions
+```bash
+npm install
+npm run dev
+npm run dev:watch
+npm run typecheck
+npm run build
 ```
 
-<!-- 📸 SCREENSHOT HERE: the chrome://extensions page -->
+`npm run dev` starts the Vite watch build and local reload signal. `npm run dev:watch` runs watch builds only. `npm run typecheck` runs strict no-emit TypeScript. `npm run build` emits `dist`.
 
-### Step 3. Turn on "Developer mode"
-Look at the **top-right** corner of that page. Flip the **"Developer mode"** switch **ON**.
+Before handing off extension changes, run:
 
-<!-- 📸 SCREENSHOT HERE: Developer mode toggle switched on (top-right) -->
+```bash
+npm run typecheck
+npm run build
+```
 
-### Step 4. Click "Load unpacked"
-Three buttons appear on the top-left. Click **"Load unpacked"**, then select the **folder you unzipped in Step 1**.
+## Version Management
 
-<!-- 📸 SCREENSHOT HERE: the "Load unpacked" button + folder picker -->
+Use GitHub releases for distributable versions:
 
-### Step 5. Done! ✅
-You'll see **Wand** appear in your list of extensions. 🎉
+1. Update `fantasia/wand/package.json`.
+2. Run validation from `fantasia/wand`.
+3. Run `npm run package` to create a release zip under `downloads`.
+4. Create a Git tag such as `wand-v1.1.0`.
+5. Attach the zip to the matching GitHub release.
 
-<!-- 📸 SCREENSHOT HERE: Wand card showing in the extensions list -->
+Do not keep old production versions as copied folders in the repo. Recreate them from Git tags or release assets when needed.
 
----
+## Reference Archive
 
-## ▶️ How to use it
+`deprecated/Accessibility/tampermonkey/udoit.js` is retained as a reference for earlier UDOIT automation behavior. Older Python modules, analytics output, copied version folders, and retired product experiments are removed from the active tree.
 
-1. Open a course in **UDOIT** and run a scan like you normally would.
-2. Look for the **Wand bar** along the **bottom** of the page. It shows what it found.
-3. When you open a supported issue, click the **Wand button** and it'll open the matching Canvas page and **highlight the exact spot** to fix.
+## Current Milestone
 
-> 🔒 **Privacy:** Wand only runs on UDOIT and Canvas pages. It doesn't touch any other website.
+Wand field validation is focused on the five supported UDOIT issue families documented in [ROADMAP.md](ROADMAP.md):
 
----
-
-## 🆘 Something not working?
-
-| Problem | Fix |
-| --- | --- |
-| I don't see the Wand bar | Refresh the UDOIT/Canvas tab after installing. |
-| "Load unpacked" did nothing | Make sure you picked the **unzipped folder**, not the `.zip` file. |
-| It disappeared after restart | Re-open `chrome://extensions` and check it's still toggled **ON**. |
-| A remediation opens the wrong content | Record the UDOIT issue name, source title, Wand toast, and any `[wand]` browser-console entry, then flag it to the team. |
-
-Still stuck? Ping the team. 💬
-
----
-
-# 🔮 Magic
-
-**Magic v1.0.0**
-
-Magic is a Windows desktop app that runs automation scripts on your machine — no browser, no server, no Python install needed. Everything is bundled in. Double-click and go.
-
-Current scripts:
-
-| Script | What it does |
-| --- | --- |
-| **MHA Competencies** | Collects Canvas outcomes `.csv` exports into one Excel workbook, one sheet per student |
-
----
-
-## ⬇️ Download
-
-1. Go to the **[Releases page](../../releases)**.
-2. Open the latest **Magic** release (**Magic v1.0.0**).
-3. Under **Assets**, click **`magic-application-v1.0.0.zip`** to download it.
-
----
-
-## 🚀 Install (30 seconds)
-
-> 💡 No installation required. No Python, no dependencies. Just unzip and run.
-
-### Step 1. Unzip the file
-Find **`magic-application-v1.0.0.zip`** in your **Downloads** folder. **Right-click → "Extract All"**. You'll get a single `.exe` file.
-
-### Step 2. Run it
-Double-click **`magic-v1.0.0-portable.exe`**.
-
-> Windows may show a "Windows protected your PC" SmartScreen warning the first time because the app isn't signed. Click **"More info"** → **"Run anyway"**. This is expected for internal tools.
-
-That's it. Magic opens. ✅
-
----
-
-## ▶️ How to use it
-
-### MHA Competencies
-
-1. Export Canvas outcomes reports for each MHA course as `.csv` files and save them all into one folder.
-2. Open Magic and click **Launch** next to **MHA Competencies**.
-3. Set the **CSV Reports Folder** to the folder containing your `.csv` files.
-4. Set the **Output Folder** to where you want the Excel workbook saved.
-5. Give the output file a name (default: `MHA_Competencies_Output`).
-6. Click **Run**.
-7. Magic scans the files and shows you what it found — click **Continue** to proceed or **Abort** to stop.
-8. When done, click **Open Output Folder** to see the result.
-
-**Auto-approve all steps**: Check this box to skip confirmation prompts entirely — useful for large batches or overnight runs.
-
----
-
-## 🆘 Something not working?
-
-| Problem | Fix |
-| --- | --- |
-| SmartScreen blocks the app | Click "More info" → "Run anyway" |
-| "No .csv files found" | Make sure your exports are `.csv` files in the folder you selected |
-| Script errors on exit | Check the step timeline for the red error step — it will show the message |
-
-Still stuck? Ping the team. 💬
-
----
-
-## 🗺️ Current Wand milestone
-
-These five UDOIT issue types account for 53,669 active findings—74.2% of the measured active Canvas backlog. Implementation is complete and field validation is in progress:
-
-| # | Remediation | Status |
-| :-: | --- | --- |
-| 1 | Styles might be used instead of semantic markup for structure | **🧪 In testing** |
-| 2 | Link has nondescript text | **🧪 In testing** |
-| 3 | Potential use of color alone to communicate information | **🧪 In testing** |
-| 4 | Alternative text uses filename rather than a descriptive label | **🧪 In testing** |
-| 5 | Video captions appear to be automatically generated and may contain errors | **🧪 In testing** |
-
-**Legend:** ✅ Shipped &nbsp;•&nbsp; 🧪 In testing &nbsp;•&nbsp; 🚧 In progress &nbsp;•&nbsp; 📋 Planned &nbsp;•&nbsp; ⏸️ Deferred
-
-Wand intentionally leaves file-based PDF, Word, PowerPoint, and spreadsheet remediation to Magic and Sorcerer. See the **[full three-application roadmap](ROADMAP.md)** for the next prioritized work and [`fantasia/wand/TESTING.md`](fantasia/wand/TESTING.md) for the current signed-in regression checklist.
+- Styles might be used instead of semantic markup for structure.
+- Link has nondescript text.
+- Potential use of color alone to communicate information.
+- Alternative text uses filename rather than a descriptive label.
+- Video captions appear to be automatically generated and may contain errors.

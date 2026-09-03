@@ -1,1 +1,0 @@
-# docx accessibility modules package

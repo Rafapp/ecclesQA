@@ -1,6 +1,8 @@
 # Temp files
 _tmp/
 **/_tmp/
+tmp/
+**/tmp/
 
 # Secrets
 .secrets/*
