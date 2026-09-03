@@ -53,13 +53,15 @@ npm run build
 
 ## Version Management
 
-Use GitHub releases for distributable versions:
+Every push or pull request that changes Wand is validated by GitHub Actions. Tags publish distributable versions automatically:
 
 1. Update `fantasia/wand/package.json`.
 2. Run validation from `fantasia/wand`.
-3. Run `npm run package` to create a release zip under `downloads`.
-4. Create a Git tag such as `wand-v1.1.0`.
-5. Attach the zip to the matching GitHub release.
+3. Commit and push the version change.
+4. Create and push the matching tag, such as `wand-v1.1.0`.
+5. GitHub validates the tag, builds the extension, and publishes `wand-extension-v1.1.0.zip` on the Releases page.
+
+The tag must exactly match the version in `fantasia/wand/package.json`. Run `npm run package` only when you need a local ZIP for testing.
 
 Do not keep old production versions as copied folders in the repo. Recreate them from Git tags or release assets when needed.
 

@@ -1,0 +1,35 @@
+name: Wand CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "fantasia/wand/**"
+      - ".github/workflows/wand-*.yml"
+  pull_request:
+    paths:
+      - "fantasia/wand/**"
+      - ".github/workflows/wand-*.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fantasia/wand
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: fantasia/wand/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

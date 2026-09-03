@@ -1,5 +1,5 @@
-import { execSync } from "child_process";
-import { mkdirSync, statSync } from "fs";
+import { execFileSync, execSync } from "child_process";
+import { mkdirSync, rmSync, statSync } from "fs";
 import { resolve, join } from "path";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
@@ -17,12 +17,23 @@ console.log("Building wand...");
 execSync("npm run build", { cwd: root, stdio: "inherit" });
 
 mkdirSync(join(repoRoot, "downloads"), { recursive: true });
+rmSync(destZip, { force: true });
 
 console.log(`\nZipping dist/ -> downloads/${zipName}...`);
-execSync(
-  `powershell -NoProfile -Command "Compress-Archive -Path '${distDir}\\*' -DestinationPath '${destZip}' -Force"`,
-  { stdio: "inherit" }
-);
+if (process.platform === "win32") {
+  execFileSync("powershell", [
+    "-NoProfile",
+    "-Command",
+    "Compress-Archive",
+    "-Path",
+    `${distDir}\\*`,
+    "-DestinationPath",
+    destZip,
+    "-Force",
+  ], { stdio: "inherit" });
+} else {
+  execFileSync("zip", ["-r", destZip, "."], { cwd: distDir, stdio: "inherit" });
+}
 
 const mb = (statSync(destZip).size / 1024 / 1024).toFixed(1);
 console.log(`Packaged: downloads/${zipName} (${mb} MB)`);

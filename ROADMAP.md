@@ -55,5 +55,5 @@ File repair, desktop apps, and server-side batch systems are outside the current
 
 1. Finish Wand P0 field validation on Rafael's Test Course and release the five current remediations.
 2. Add Wand P1 Canvas remediations in order of reach and safe automation potential.
-3. Harden release packaging around Git tags and GitHub releases.
+3. Validate automated release packaging around Git tags and GitHub releases.
 4. Re-run the analytics export after each release cycle and revise priorities when issue counts or completion rates materially change.

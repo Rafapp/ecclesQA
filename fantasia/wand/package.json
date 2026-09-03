@@ -9,7 +9,8 @@
     "build": "vite build",
     "test": "node --test --experimental-strip-types tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "release:verify": "node scripts/verify-release-tag.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.268",
