@@ -2,6 +2,7 @@ import type { RemediationContext } from "./types";
 
 export const REMEDIATION_STORAGE_KEY = "wandPendingRemediation";
 export const ADVANCE_PENDING_STORAGE_KEY = "wandAdvancePending";
+export const ADVANCE_PENDING_MAX_AGE_MS = 60000;
 export const REMEDIATION_WORKSPACE_MESSAGE = "wand:open-remediation-workspace";
 export const PREPARE_WORKSPACE_MESSAGE = "wand:prepare-remediation-workspace";
 export const OPEN_MEDIA_PLATFORM_MESSAGE = "wand:open-media-platform";
@@ -330,6 +331,13 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
 ];
 
 export const SUPPORTED_REMEDIATIONS = REMEDIATION_DEFINITIONS.map(({ issueType }) => issueType);
+
+export function isAdvancePendingFresh(value: unknown, now = Date.now()): value is number {
+  return typeof value === "number" &&
+    Number.isFinite(value) &&
+    value <= now &&
+    now - value <= ADVANCE_PENDING_MAX_AGE_MS;
+}
 
 export type PendingRemediation = RemediationContext & {
   createdAt: number;

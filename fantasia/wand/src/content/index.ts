@@ -12,7 +12,7 @@ import { improveUdoitImageAltText } from "./udoitImageAltRemediator";
 import { closeWorkspace, initializeWorkspace, openWorkspace } from "./workspace";
 import { reportError } from "./diagnostics";
 import { wandConfig } from "../shared/config";
-import { ADVANCE_PENDING_STORAGE_KEY, getRemediationDefinition, REMEDIATION_STORAGE_KEY } from "../shared/remediation";
+import { ADVANCE_PENDING_STORAGE_KEY, getRemediationDefinition, isAdvancePendingFresh, REMEDIATION_STORAGE_KEY } from "../shared/remediation";
 import { normalize } from "../shared/utils";
 
 const WAND_ENABLED_STORAGE_KEY = "wandEnabled";
@@ -348,7 +348,17 @@ async function consumePendingAdvance(): Promise<void> {
   }
 
   const pending = await chrome.storage.local.get(ADVANCE_PENDING_STORAGE_KEY);
-  if (!pending[ADVANCE_PENDING_STORAGE_KEY]) {
+  const pendingSince = pending[ADVANCE_PENDING_STORAGE_KEY];
+  if (pendingSince === undefined) {
+    return;
+  }
+
+  if (!isAdvancePendingFresh(pendingSince)) {
+    await chrome.storage.local.remove(ADVANCE_PENDING_STORAGE_KEY);
+    reportError("advance-request-expired", "Wand discarded a stale request to advance UDOIT.", latestFrameSnapshot?.remediation, {
+      pendingSince,
+    });
+    postRemediationErrorToTop("Wand stopped a stale next-issue request so it would not advance the wrong review item. Bug code: advance-request-expired");
     return;
   }
 
@@ -356,8 +366,8 @@ async function consumePendingAdvance(): Promise<void> {
   try {
     const previousRemediationSignature = getRemediationSignature(latestFrameSnapshot?.remediation);
     const advanced = await clickNextIssueWhenReady();
+    await chrome.storage.local.remove(ADVANCE_PENDING_STORAGE_KEY);
     if (advanced) {
-      await chrome.storage.local.remove(ADVANCE_PENDING_STORAGE_KEY);
       await launchNextRemediation(previousRemediationSignature);
     }
   } finally {
@@ -376,7 +386,10 @@ async function launchNextRemediation(previousSignature: string): Promise<void> {
   }, 15000, 200);
 
   if (!nextRemediation) {
-    console.info("[wand] Advanced UDOIT issue, but no next remediation became available.");
+    reportError("next-remediation-not-detected", "Wand advanced UDOIT, but couldn't identify the next issue.", latestFrameSnapshot?.remediation, {
+      previousSignature,
+    });
+    postRemediationErrorToTop("Wand advanced UDOIT, but couldn't identify the next issue. Close the Canvas workspace and reopen the current Review item. Bug code: next-remediation-not-detected");
     postActionStateToTop(false);
     return;
   }

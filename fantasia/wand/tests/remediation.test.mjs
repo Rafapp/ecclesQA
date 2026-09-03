@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { getFilenameLabelSuggestion } from "../src/shared/filenameLabel.ts";
 import { cleanNondescriptLinkText, getLinkTextSuggestion } from "../src/shared/linkText.ts";
-import { getRemediationDefinition, SUPPORTED_REMEDIATIONS } from "../src/shared/remediation.ts";
+import { ADVANCE_PENDING_MAX_AGE_MS, getRemediationDefinition, isAdvancePendingFresh, SUPPORTED_REMEDIATIONS } from "../src/shared/remediation.ts";
 
 test("cleans common document link filenames", () => {
   assert.equal(
@@ -90,4 +90,13 @@ test("recognizes every page issue exported by the UDOIT test course", () => {
   for (const issueType of exportedIssueTypes) {
     assert.ok(getRemediationDefinition(issueType), `Missing remediation definition for: ${issueType}`);
   }
+});
+
+test("expires stale next-issue requests", () => {
+  const now = 100000;
+  assert.equal(isAdvancePendingFresh(now, now), true);
+  assert.equal(isAdvancePendingFresh(now - ADVANCE_PENDING_MAX_AGE_MS, now), true);
+  assert.equal(isAdvancePendingFresh(now - ADVANCE_PENDING_MAX_AGE_MS - 1, now), false);
+  assert.equal(isAdvancePendingFresh(now + 1, now), false);
+  assert.equal(isAdvancePendingFresh("100000", now), false);
 });

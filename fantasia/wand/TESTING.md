@@ -15,6 +15,7 @@ Load `fantasia/wand/dist` as the unpacked extension, open Rafael's Test Course o
 9. For automatically generated captions, confirm Wand opens the matching Canvas page. Click **Open video platform**, then **Check captions again** after any correction.
 10. Click **Mark as resolved and go to next** only on disposable test issues. Confirm UDOIT advances and the Canvas workspace changes to the next issue.
 11. Turn Wand off and on in its popup and confirm supported open tabs refresh. Confirm **Reload Wand** reloads the extension and those tabs.
+12. If advancing cannot complete, confirm Wand stops loading, shows a bug code, and does not unexpectedly advance an issue after a later page reload.
 
 ## Full taxonomy spot checks
 
