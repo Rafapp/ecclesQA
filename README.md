@@ -76,3 +76,5 @@ Wand field validation is focused on the five supported UDOIT issue families docu
 - Potential use of color alone to communicate information.
 - Alternative text uses filename rather than a descriptive label.
 - Video captions appear to be automatically generated and may contain errors.
+
+Additional reviewer-guided support is being added for non-file UDOIT issues such as table headers/scopes, empty or skipped headings, empty links, missing captions, list formatting, layout tables, and color contrast.

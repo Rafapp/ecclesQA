@@ -13,6 +13,7 @@ Version snapshots and retired product experiments do not belong in the source tr
 - `fantasia/wand/src/content`: content-script UI, UDOIT detection, Canvas highlighting, remediation handlers, frame messaging, and workspace behavior.
 - `fantasia/wand/src/background`: service worker modules for reload, workspace tab routing, and media helpers.
 - `fantasia/wand/src/shared`: shared config, types, remediation labels, and utilities.
+- `fantasia/wand/src/shared/diagnostics.ts`: bounded local diagnostic log for broken automation reports.
 - `fantasia/wand/public`: manifest, static popup assets, icons, and page-context shims copied into `dist`.
 - `fantasia/wand/tests`: Node test coverage for shared remediation helpers.
 - `deprecated/Accessibility/tampermonkey/udoit.js`: retained reference script for earlier UDOIT automation behavior.
@@ -36,3 +37,7 @@ npm run build
 - Removed generated `fantasia/wand/dist` from version control.
 - Removed local temp exports, scratch fixtures, and duplicate generated assets.
 - Kept only `deprecated/Accessibility/tampermonkey/udoit.js` because current repo instructions identify it as a useful reference for future Wand ports.
+
+## Current Automation Boundary
+
+Wand may reduce clicks, open relevant Canvas/UDOIT surfaces, fill safe suggestions, and advance after an explicit reviewer action. It should not choose subjective content changes or silently save them.

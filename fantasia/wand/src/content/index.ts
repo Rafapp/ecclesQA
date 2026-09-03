@@ -4,11 +4,13 @@ import { isTopFrame, listenForActionState, listenForActionSuccess, listenForCanv
 import { initializeHandlers } from "./handlers";
 import { createPanel, setPanelBusy, showPanelError, showPanelSuccess, updatePanelSnapshot } from "./panel";
 import { refreshUdoitCaptionStatus } from "./udoitCaptionRemediator";
+import { expandUdoitPreview, saveUdoitFixAndAdvance } from "./udoitActions";
 import { initializeUdoitDetector } from "./udoitDetector";
 import { confirmUdoitWorkspaceOpened, startUdoitRemediation } from "./udoitRemediator";
 import { improveUdoitLinkText } from "./udoitLinkRemediator";
 import { improveUdoitImageAltText } from "./udoitImageAltRemediator";
 import { closeWorkspace, initializeWorkspace, openWorkspace } from "./workspace";
+import { reportError } from "./diagnostics";
 import { wandConfig } from "../shared/config";
 import { ADVANCE_PENDING_STORAGE_KEY, getRemediationDefinition, REMEDIATION_STORAGE_KEY } from "../shared/remediation";
 import { normalize } from "../shared/utils";
@@ -54,6 +56,14 @@ const panel = wandConfig.features.panel && topFrame ? createPanel(
       "apply-color-cue": "Adding a non-color cue…",
       "open-caption-source": "Opening the video platform…",
       "refresh-caption-status": "Checking captions again…",
+    };
+    setPanelBusy(panel!, true, labels[action]);
+    postCommandToFrames({ type: action });
+  },
+  (action) => {
+    const labels = {
+      "expand-preview": "Opening preview...",
+      "save-and-next": "Saving and loading the next issue...",
     };
     setPanelBusy(panel!, true, labels[action]);
     postCommandToFrames({ type: action });
@@ -150,6 +160,14 @@ if (panel) {
       void refreshUdoitCaptionStatus();
     }
 
+    if (command.type === "expand-preview" && window.location.hostname === "udoit3.ciditools.com") {
+      void expandUdoitPreview();
+    }
+
+    if (command.type === "save-and-next" && window.location.hostname === "udoit3.ciditools.com") {
+      void saveUdoitFixAndAdvance();
+    }
+
     if (command.type === "apply-color-cue" && window.location.hostname.endsWith(".instructure.com")) {
       applyColorCue();
     }
@@ -174,7 +192,10 @@ if (panel) {
 function applyColorCue(): void {
   postActionStateToTop(true, "Adding a non-color cue…");
   if (!applyBoldCueToSelection()) {
-    postRemediationErrorToTop("Wand couldn't find selected Canvas text. Select the color-only text, then try again.");
+    reportError("color-cue-selection-not-found", "Wand couldn't find selected Canvas text.", latestUdoitSnapshot?.remediation, {
+      workspaceActive,
+    });
+    postRemediationErrorToTop("Wand couldn't find selected Canvas text. Select the color-only text, then try again. Bug code: color-cue-selection-not-found");
     postActionStateToTop(false);
     return;
   }
@@ -187,7 +208,10 @@ async function openCaptionPlatform(): Promise<void> {
   postActionStateToTop(true, "Opening the video platform…");
   try {
     if (!await openCaptionSource()) {
-      postRemediationErrorToTop("Wand couldn't identify the embedded video's platform. Open it from Canvas and flag this to the team.");
+      reportError("caption-platform-not-found", "Wand couldn't identify the embedded video's platform.", latestUdoitSnapshot?.remediation, {
+        workspaceActive,
+      });
+      postRemediationErrorToTop("Wand couldn't identify the embedded video's platform. Open it from Canvas and flag this to the team. Bug code: caption-platform-not-found");
       return;
     }
 
@@ -254,8 +278,8 @@ async function resolveCurrentRemediation(): Promise<void> {
   try {
     const manualResolution = await waitFor(() => getElementByText("span", "Manual Resolution"), 5000, 200);
     if (!manualResolution) {
-      console.error("[wand] Manual Resolution control was not found.");
-      postRemediationErrorToTop("Wand couldn't find UDOIT's Manual Resolution control.");
+      reportError("manual-resolution-control-not-found", "Wand couldn't find UDOIT's Manual Resolution control.", latestFrameSnapshot?.remediation);
+      postRemediationErrorToTop("Wand couldn't find UDOIT's Manual Resolution control. Bug code: manual-resolution-control-not-found");
       return;
     }
 
@@ -266,8 +290,8 @@ async function resolveCurrentRemediation(): Promise<void> {
     }
 
     if (!confirmation) {
-      console.error("[wand] Manual Resolution confirmation was not found.");
-      postRemediationErrorToTop("Wand couldn't confirm the manual resolution in UDOIT.");
+      reportError("manual-resolution-confirmation-not-found", "Wand couldn't confirm the manual resolution in UDOIT.", latestFrameSnapshot?.remediation);
+      postRemediationErrorToTop("Wand couldn't confirm the manual resolution in UDOIT. Bug code: manual-resolution-confirmation-not-found");
       return;
     }
 
@@ -393,7 +417,10 @@ async function clickNextIssueWhenReady(): Promise<boolean> {
       url: window.location.href,
       buttons: Array.from(document.querySelectorAll<HTMLButtonElement>("button")).map((button) => normalize(button.textContent)).filter(Boolean).slice(0, 12),
     });
-    postRemediationErrorToTop("Wand couldn't advance to the next UDOIT issue.");
+    reportError("next-issue-control-not-found", "Wand couldn't advance to the next UDOIT issue.", latestFrameSnapshot?.remediation, {
+      buttons: Array.from(document.querySelectorAll<HTMLButtonElement>("button")).map((button) => normalize(button.textContent)).filter(Boolean).slice(0, 12),
+    });
+    postRemediationErrorToTop("Wand couldn't advance to the next UDOIT issue. Bug code: next-issue-control-not-found");
     return false;
   }
 

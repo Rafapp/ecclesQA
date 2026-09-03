@@ -42,6 +42,12 @@ File repair, desktop apps, and server-side batch systems are outside the current
 | P2 | Styled tabular data and external-content review | 3,760 combined | Planned | Prioritize reliable identification and guidance; do not claim third-party content was repaired |
 | Deferred | PDF, DOC, PPT, and XLS repair inside Wand | 43,875 file findings | Deferred | Remains outside the extension |
 
+## Feature Ideas
+
+- Add first-class bug and suggestion reporting inside the extension, with a reviewer-approved diagnostic bundle that can include the active issue type, source title, Wand version, recent action trail, DOM-safe page state, and optional screenshots.
+- Add keyboard support for high-frequency review flows, including a reviewer-configurable next shortcut such as `n` for mark/save/advance once the reviewer has confirmed the current issue is ready.
+- Add a release checklist that maps GitHub release assets to tested UDOIT issue families so version support is visible without reading commit history.
+
 ## Delivery Order
 
 1. Finish Wand P0 field validation on Rafael's Test Course and release the five current remediations.

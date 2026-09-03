@@ -1,4 +1,4 @@
-import type { WorkspaceAction } from "../shared/remediation";
+import type { UdoitAction, WorkspaceAction } from "../shared/remediation";
 import type { PageSnapshot } from "../shared/types";
 
 const SNAPSHOT_MESSAGE = "wand:page-snapshot";
@@ -10,7 +10,7 @@ const ACTION_STATE_MESSAGE = "wand:action-state";
 const ACTION_SUCCESS_MESSAGE = "wand:action-success";
 
 export type FrameCommand = {
-  type: "start-remediation" | "resolve-remediation" | "advance-remediation" | "workspace-opened" | WorkspaceAction;
+  type: "start-remediation" | "resolve-remediation" | "advance-remediation" | "workspace-opened" | WorkspaceAction | UdoitAction;
 };
 
 export type CanvasSaveMessage = {
@@ -200,7 +200,9 @@ function isCommandMessage(value: unknown): value is Required<CommandMessage> {
     message.command?.type === "workspace-opened" ||
     message.command?.type === "apply-color-cue" ||
     message.command?.type === "open-caption-source" ||
-    message.command?.type === "refresh-caption-status"
+    message.command?.type === "refresh-caption-status" ||
+    message.command?.type === "expand-preview" ||
+    message.command?.type === "save-and-next"
   );
 }
 

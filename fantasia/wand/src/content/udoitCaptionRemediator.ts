@@ -1,4 +1,5 @@
 import { normalize } from "../shared/utils";
+import { reportError } from "./diagnostics";
 import { postActionStateToTop, postActionSuccessToTop, postRemediationErrorToTop } from "./frameBridge";
 import { isVisible } from "./udoitTextInput";
 
@@ -10,7 +11,13 @@ export async function refreshUdoitCaptionStatus(): Promise<void> {
     const control = Array.from(document.querySelectorAll<HTMLElement>("button, [role='button']"))
       .find((candidate) => isVisible(candidate) && CAPTION_REFRESH_PATTERN.test(normalize(candidate.innerText || candidate.textContent)));
     if (!control || control.getAttribute("aria-disabled") === "true" || control instanceof HTMLButtonElement && control.disabled) {
-      postRemediationErrorToTop("Wand couldn't find UDOIT's caption refresh control. Please flag this to the team.");
+      reportError("caption-refresh-control-not-found", "Wand couldn't find UDOIT's caption refresh control.", undefined, {
+        buttons: Array.from(document.querySelectorAll<HTMLElement>("button, [role='button']"))
+          .map((button) => normalize(button.innerText || button.textContent))
+          .filter(Boolean)
+          .slice(0, 20),
+      });
+      postRemediationErrorToTop("Wand couldn't find UDOIT's caption refresh control. Bug code: caption-refresh-control-not-found");
       return;
     }
 

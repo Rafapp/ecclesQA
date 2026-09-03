@@ -1,6 +1,7 @@
 import { getRemediationDefinition, PREPARE_WORKSPACE_MESSAGE, REMEDIATION_STORAGE_KEY, type PendingRemediation, type PrepareWorkspaceMessage } from "../shared/remediation";
 import type { RemediationContext } from "../shared/types";
 import { normalize } from "../shared/utils";
+import { reportError } from "./diagnostics";
 import { postActionStateToTop, postRemediationErrorToTop, postWorkspaceUrlToTop } from "./frameBridge";
 import { getUdoitSourceControl, getUdoitSourceControlDiagnostics } from "./udoitControls";
 
@@ -155,13 +156,8 @@ function failRemediation(
   context: RemediationContext,
   details: Record<string, unknown> = {}
 ): void {
-  console.error("[wand] Remediation failed.", {
-    code,
-    issueType: context.issueType,
-    sourceTitle: context.sourceTitle,
-    ...details,
-  });
-  postRemediationErrorToTop(message);
+  reportError(code, message, context, details);
+  postRemediationErrorToTop(`${message} Bug code: ${code}`);
 }
 
 function toCanvasUrl(url: unknown): string | null {

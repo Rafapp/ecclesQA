@@ -46,10 +46,12 @@ test("cleans image filename alternative text", () => {
 });
 
 test("registers all sprint remediations and caption alias", () => {
-  assert.equal(SUPPORTED_REMEDIATIONS.length, 5);
+  assert.equal(SUPPORTED_REMEDIATIONS.length, 15);
   assert.equal(getRemediationDefinition("Closed Captions Were Auto-Generated")?.actionLabel, "Review video captions");
   assert.equal(
     getRemediationDefinition("Potential use of color alone to communicate information")?.workspaceActions?.[0]?.action,
     "apply-color-cue"
   );
+  assert.equal(getRemediationDefinition("No table headers found")?.udoitActions?.[0]?.action, "expand-preview");
+  assert.equal(getRemediationDefinition("Insufficient color contrast")?.actionLabel, "Review color contrast");
 });

@@ -1,5 +1,6 @@
 import panelStyles from "../content.css?raw";
-import { getRemediationDefinition, isSupportedRemediation, SUPPORTED_REMEDIATIONS, type WorkspaceAction } from "../shared/remediation";
+import { DIAGNOSTIC_LOG_STORAGE_KEY, type DiagnosticEvent } from "../shared/diagnostics";
+import { getRemediationDefinition, isSupportedRemediation, SUPPORTED_REMEDIATIONS, type UdoitAction, type WorkspaceAction } from "../shared/remediation";
 import type { PageSnapshot } from "../shared/types";
 
 const PANEL_ID = "wand-panel";
@@ -13,6 +14,7 @@ const ICON_URL = chrome.runtime.getURL("icons/48.png");
 const COLLAPSED_CLASS = "wand-panel--collapsed";
 const TOAST_ID = "wand-panel-toast";
 const WORKSPACE_ACTION_ATTRIBUTE = "data-wand-workspace-action";
+const UDOIT_ACTION_ATTRIBUTE = "data-wand-udoit-action";
 
 let workspaceActive = false;
 let lastSnapshot: PageSnapshot | null = null;
@@ -23,7 +25,8 @@ let busyLabel = "Working…";
 export function createPanel(
   onRemediate?: () => void,
   onResolve?: () => void,
-  onWorkspaceAction?: (action: WorkspaceAction) => void
+  onWorkspaceAction?: (action: WorkspaceAction) => void,
+  onUdoitAction?: (action: UdoitAction) => void
 ): HTMLElement {
   injectPanelStyles();
 
@@ -67,6 +70,11 @@ export function createPanel(
       const workspaceAction = target?.getAttribute(WORKSPACE_ACTION_ATTRIBUTE) as WorkspaceAction | null;
       if (workspaceAction) {
         onWorkspaceAction?.(workspaceAction);
+      }
+
+      const udoitAction = target?.getAttribute(UDOIT_ACTION_ATTRIBUTE) as UdoitAction | null;
+      if (udoitAction) {
+        onUdoitAction?.(udoitAction);
       }
     });
   }
@@ -178,7 +186,32 @@ function createMainContent(snapshot: PageSnapshot | null): HTMLElement {
   button.type = "button";
   button.textContent = getActionLabel(snapshot.remediation.issueType);
   main.append(button);
+  const udoitActions = createUdoitActions(snapshot);
+  if (udoitActions.childElementCount) {
+    main.append(udoitActions);
+  }
   return main;
+}
+
+function createUdoitActions(snapshot: PageSnapshot): HTMLElement {
+  const controls = document.createElement("div");
+  controls.className = "wand-panel__udoit-controls";
+
+  if (!snapshot.remediation) {
+    return controls;
+  }
+
+  const definition = getRemediationDefinition(snapshot.remediation.issueType);
+  for (const action of definition?.udoitActions ?? []) {
+    const actionButton = document.createElement("button");
+    actionButton.type = "button";
+    actionButton.className = "wand-panel__secondary-action";
+    actionButton.setAttribute(UDOIT_ACTION_ATTRIBUTE, action.action);
+    actionButton.textContent = action.label;
+    controls.append(actionButton);
+  }
+
+  return controls;
 }
 
 function createWorkspaceAction(snapshot: PageSnapshot | null): HTMLElement {
@@ -298,10 +331,52 @@ function showPanelToast(message: string, tone: "error" | "success"): void {
   toast.id = TOAST_ID;
   toast.className = `wand-panel__toast wand-panel__toast--${tone}`;
   toast.setAttribute("role", tone === "error" ? "alert" : "status");
-  toast.textContent = message;
+  const text = document.createElement("div");
+  text.textContent = message;
+  toast.append(text);
+
+  if (tone === "error") {
+    toast.append(createCopyBugReportButton());
+  }
+
   document.documentElement.append(toast);
 
   window.setTimeout(() => toast.remove(), 7000);
+}
+
+function createCopyBugReportButton(): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "wand-panel__toast-action";
+  button.textContent = "Copy bug report";
+  button.addEventListener("click", async () => {
+    const report = await getBugReportText();
+    await navigator.clipboard.writeText(report);
+    button.textContent = "Copied";
+  });
+  return button;
+}
+
+async function getBugReportText(): Promise<string> {
+  const stored = await chrome.storage.local.get(DIAGNOSTIC_LOG_STORAGE_KEY);
+  const events = Array.isArray(stored[DIAGNOSTIC_LOG_STORAGE_KEY])
+    ? stored[DIAGNOSTIC_LOG_STORAGE_KEY] as DiagnosticEvent[]
+    : [];
+  const latest = events[0];
+  if (!latest) {
+    return "Wand bug report: no diagnostic event was recorded.";
+  }
+
+  return JSON.stringify({
+    code: latest.code,
+    message: latest.message,
+    issueType: latest.issueType,
+    sourceTitle: latest.sourceTitle,
+    url: latest.url,
+    appVersion: latest.appVersion,
+    observedAt: new Date(latest.observedAt).toISOString(),
+    details: latest.details,
+  }, null, 2);
 }
 
 function closeSupportedErrorsWhenClickingElsewhere(panel: HTMLElement, target: EventTarget | null): void {

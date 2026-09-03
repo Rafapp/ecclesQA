@@ -1,6 +1,7 @@
 import { getFilenameLabelSuggestion } from "../shared/filenameLabel";
 import type { RemediationContext } from "../shared/types";
 import { normalize } from "../shared/utils";
+import { reportError } from "./diagnostics";
 import { postActionStateToTop, postActionSuccessToTop, postRemediationErrorToTop } from "./frameBridge";
 import { getInputLabel, getVisibleDialog, isVisible, setInputValue, TEXT_INPUT_SELECTOR } from "./udoitTextInput";
 
@@ -81,11 +82,6 @@ function failImageAltRemediation(
   context: RemediationContext,
   details: Record<string, unknown> = {}
 ): void {
-  console.error("[wand] Alternative-text remediation failed.", {
-    code,
-    issueType: context.issueType,
-    sourceTitle: context.sourceTitle,
-    ...details,
-  });
-  postRemediationErrorToTop(message);
+  reportError(code, message, context, details);
+  postRemediationErrorToTop(`${message} Bug code: ${code}`);
 }
