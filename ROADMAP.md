@@ -42,7 +42,7 @@ File repair, desktop apps, and server-side batch systems are outside the current
 | P2 | Image alternative-text review | Test-course coverage | In testing | Identify generic, lengthy, missing, decorative, duplicated, and linked-image text cases without inventing descriptions |
 | P2 | Transcript, readability, and document metadata review | Test-course coverage | In testing | Open the correct source and provide issue-specific reviewer guidance without claiming an automatic repair |
 | P2 | Styled tabular data and empty-table review | Test-course coverage | In testing | Identify the relevant content and guide semantic table decisions without guessing structure |
-| P2 | External-content review | Production backlog | Planned | Prioritize reliable identification and guidance; do not claim third-party content was repaired |
+| P2 | External-content review | Production backlog | In testing | Identify the Canvas source and provide reviewer guidance; do not claim third-party content was repaired |
 | Deferred | PDF, DOC, PPT, and XLS repair inside Wand | 43,875 file findings | Deferred | Remains outside the extension |
 
 ## Feature Ideas

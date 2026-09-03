@@ -46,7 +46,7 @@ test("cleans image filename alternative text", () => {
 });
 
 test("registers all sprint remediations and caption alias", () => {
-  assert.equal(SUPPORTED_REMEDIATIONS.length, 29);
+  assert.equal(SUPPORTED_REMEDIATIONS.length, 30);
   assert.equal(getRemediationDefinition("Closed Captions Were Auto-Generated")?.actionLabel, "Review video captions");
   assert.equal(
     getRemediationDefinition("Potential use of color alone to communicate information")?.workspaceActions?.[0]?.action,
@@ -54,6 +54,10 @@ test("registers all sprint remediations and caption alias", () => {
   );
   assert.equal(getRemediationDefinition("No table headers found")?.udoitActions?.[0]?.action, "expand-preview");
   assert.equal(getRemediationDefinition("Insufficient color contrast")?.actionLabel, "Review color contrast");
+  assert.equal(
+    getRemediationDefinition("Linked or embedded external content may not meet accessibility standards")?.actionLabel,
+    "Review external content"
+  );
 });
 
 test("recognizes every page issue exported by the UDOIT test course", () => {

@@ -275,6 +275,14 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     workspaceGuidance: "Provide an accurate transcript for the linked audio and add a clearly labeled transcript link adjacent to the audio link.",
   },
   {
+    issueType: "Linked or embedded external content may not meet accessibility standards",
+    workflow: "canvas",
+    actionLabel: "Review external content",
+    busyLabel: "Opening external-content review...",
+    workspaceGuidance: "Review the linked or embedded resource for keyboard access, meaningful labels, captions or transcripts, and other relevant accessibility requirements. Replace it or provide an accessible alternative when the external resource cannot be corrected.",
+    requiresPreview: false,
+  },
+  {
     issueType: "Content may exceed recommended length for readability (3000+ words)",
     workflow: "canvas",
     actionLabel: "Review content length",

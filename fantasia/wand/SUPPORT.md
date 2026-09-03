@@ -21,6 +21,7 @@ Wand opens the matching Canvas source, identifies the target when UDOIT provides
 - Empty links.
 - Insufficient color contrast.
 - Multimedia and audio transcripts.
+- Linked or embedded third-party content.
 - Deprecated font markup and missing document direction.
 - Long content that may need restructuring.
 - Tabular-looking content, empty tables, layout tables, and list formatting.
