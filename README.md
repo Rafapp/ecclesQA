@@ -79,4 +79,4 @@ Wand's assisted remediation remains focused on five high-volume UDOIT issue fami
 - Alternative text uses filename rather than a descriptive label.
 - Video captions appear to be automatically generated and may contain errors.
 
-Wand now recognizes all 27 non-file issue names in the current Rafael's Test Course export, plus list-formatting and layout-table modes retained for broader coverage. Subjective corrections use reviewer-guided Canvas workflows. See [the support matrix](fantasia/wand/SUPPORT.md).
+Wand now recognizes all 27 non-file issue names in the current Rafael's Test Course export, plus list-formatting, layout-table, and production external-content modes retained for broader coverage. Subjective corrections use reviewer-guided Canvas workflows. See [the support matrix](fantasia/wand/SUPPORT.md) and [live validation matrix](fantasia/wand/LIVE_VALIDATION.md).

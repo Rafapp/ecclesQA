@@ -1,5 +1,5 @@
 import { POLL_INTERVAL_MS } from "../shared/config";
-import { getRemediationDefinition, isSupportedRemediation } from "../shared/remediation";
+import { isSupportedRemediation } from "../shared/remediation";
 import type { IssueSummary, PageKind, PageSnapshot } from "../shared/types";
 import { normalize } from "../shared/utils";
 import { getUdoitSourceTitle } from "./udoitControls";
@@ -151,9 +151,7 @@ function getRemediationContext(dialog: HTMLElement, issueType: string) {
   const sourceTitle = getModalSourceTitle(dialog);
   const previewText = getModalPreviewText(dialog);
   const { issueIndex, issueTotal } = getModalIssueCounter(dialog);
-  const definition = getRemediationDefinition(issueType);
-
-  if (!sourceTitle || !previewText && definition?.requiresPreview !== false) {
+  if (!sourceTitle) {
     return undefined;
   }
 

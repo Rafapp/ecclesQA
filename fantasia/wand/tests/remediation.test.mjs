@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { getFilenameLabelSuggestion } from "../src/shared/filenameLabel.ts";
 import { cleanNondescriptLinkText, getLinkTextSuggestion } from "../src/shared/linkText.ts";
-import { ADVANCE_PENDING_MAX_AGE_MS, getRemediationDefinition, isAdvancePendingFresh, SUPPORTED_REMEDIATIONS } from "../src/shared/remediation.ts";
+import { ADVANCE_PENDING_MAX_AGE_MS, getRemediationDefinition, isAdvancePendingFresh, REMEDIATION_DEFINITIONS, SUPPORTED_REMEDIATIONS } from "../src/shared/remediation.ts";
 
 test("cleans common document link filenames", () => {
   assert.equal(
@@ -53,6 +53,14 @@ test("registers all sprint remediations and caption alias", () => {
     "apply-color-cue"
   );
   assert.equal(getRemediationDefinition("No table headers found")?.udoitActions?.[0]?.action, "expand-preview");
+  assert.equal(
+    getRemediationDefinition("One or more heading elements do not contain text")?.udoitActions?.[0]?.action,
+    "prepare-empty-heading-removal"
+  );
+  assert.equal(
+    getRemediationDefinition('Image does not include an "alt" attribute')?.udoitActions?.[0]?.action,
+    "save-and-next"
+  );
   assert.equal(getRemediationDefinition("Insufficient color contrast")?.actionLabel, "Review color contrast");
   assert.equal(
     getRemediationDefinition("Linked or embedded external content may not meet accessibility standards")?.actionLabel,
@@ -103,4 +111,26 @@ test("expires stale next-issue requests", () => {
   assert.equal(isAdvancePendingFresh(now - ADVANCE_PENDING_MAX_AGE_MS - 1, now), false);
   assert.equal(isAdvancePendingFresh(now + 1, now), false);
   assert.equal(isAdvancePendingFresh("100000", now), false);
+});
+
+test("every registered remediation provides a concrete productivity aid", () => {
+  for (const definition of REMEDIATION_DEFINITIONS) {
+    assert.ok(definition.actionLabel, `${definition.issueType} is missing an action label`);
+    assert.ok(definition.busyLabel, `${definition.issueType} is missing a loading label`);
+    assert.ok(
+      definition.workflow !== "canvas" || definition.workspaceGuidance,
+      `${definition.issueType} is missing Canvas guidance`
+    );
+  }
+});
+
+test("recognizes the live missing-alt title and malformed CSV title", () => {
+  assert.equal(
+    getRemediationDefinition('Image does not include an "alt" attribute')?.actionLabel,
+    "Add image alternative text"
+  );
+  assert.equal(
+    getRemediationDefinition('Image does not include an alt" attribute"')?.actionLabel,
+    "Add image alternative text"
+  );
 });

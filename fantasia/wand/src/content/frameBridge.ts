@@ -202,6 +202,7 @@ function isCommandMessage(value: unknown): value is Required<CommandMessage> {
     message.command?.type === "open-caption-source" ||
     message.command?.type === "refresh-caption-status" ||
     message.command?.type === "expand-preview" ||
+    message.command?.type === "prepare-empty-heading-removal" ||
     message.command?.type === "save-and-next"
   );
 }

@@ -9,7 +9,7 @@ export const OPEN_MEDIA_PLATFORM_MESSAGE = "wand:open-media-platform";
 
 export type RemediationWorkflow = "canvas" | "linkText" | "imageAlt";
 export type WorkspaceAction = "apply-color-cue" | "open-caption-source" | "refresh-caption-status";
-export type UdoitAction = "expand-preview" | "save-and-next";
+export type UdoitAction = "expand-preview" | "prepare-empty-heading-removal" | "save-and-next";
 
 export type WorkspaceActionDefinition = {
   action: WorkspaceAction;
@@ -30,7 +30,6 @@ export type RemediationDefinition = {
   workspaceGuidance?: string;
   workspaceActions?: WorkspaceActionDefinition[];
   udoitActions?: UdoitActionDefinition[];
-  requiresPreview?: boolean;
 };
 
 export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
@@ -79,7 +78,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
         label: "Save and go to next",
       },
     ],
-    requiresPreview: false,
   },
   {
     issueType: "Alternative text appears to be a generic placeholder",
@@ -87,6 +85,12 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review placeholder alternative text",
     busyLabel: "Opening alternative-text remediation...",
     workspaceGuidance: "Replace placeholder alternative text such as image or photo with a concise description, or mark the image decorative when appropriate, then save.",
+    udoitActions: [
+      {
+        action: "save-and-next",
+        label: "Save and go to next",
+      },
+    ],
   },
   {
     issueType: "Alternative text is too lengthy for optimal screen reader experience",
@@ -94,6 +98,12 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Shorten alternative text",
     busyLabel: "Opening alternative-text remediation...",
     workspaceGuidance: "Shorten the alternative text to its essential meaning. Move complex detail into nearby page text when needed, then save.",
+    udoitActions: [
+      {
+        action: "save-and-next",
+        label: "Save and go to next",
+      },
+    ],
   },
   {
     issueType: "Decorative image does not have an empty alternative text",
@@ -101,14 +111,26 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review decorative image",
     busyLabel: "Opening image remediation...",
     workspaceGuidance: "Confirm the image is decorative, then mark it decorative or give it empty alternative text. If it conveys meaning, provide descriptive alternative text instead.",
+    udoitActions: [
+      {
+        action: "save-and-next",
+        label: "Save and go to next",
+      },
+    ],
   },
   {
-    issueType: "Image does not include an alt\" attribute\"",
-    aliases: ["Image does not include an alt attribute"],
+    issueType: "Image does not include an \"alt\" attribute",
+    aliases: ["Image does not include an alt\" attribute\"", "Image does not include an alt attribute"],
     workflow: "canvas",
     actionLabel: "Add image alternative text",
     busyLabel: "Opening image remediation...",
     workspaceGuidance: "Add concise alternative text that communicates the image's purpose, or mark the image decorative when it conveys no information, then save.",
+    udoitActions: [
+      {
+        action: "save-and-next",
+        label: "Save and go to next",
+      },
+    ],
   },
   {
     issueType: "Image long description is identical to alternative text",
@@ -116,6 +138,12 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review image descriptions",
     busyLabel: "Opening image remediation...",
     workspaceGuidance: "Keep alternative text concise and make any long description provide additional detail. Remove the duplicate long description when it adds no value.",
+    udoitActions: [
+      {
+        action: "save-and-next",
+        label: "Save and go to next",
+      },
+    ],
   },
   {
     issueType: "Linked image does not have a descriptive alternative text",
@@ -123,6 +151,12 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Describe linked image",
     busyLabel: "Opening linked-image remediation...",
     workspaceGuidance: "Give the linked image alternative text that describes the link's destination or action rather than only the image appearance, then save.",
+    udoitActions: [
+      {
+        action: "save-and-next",
+        label: "Save and go to next",
+      },
+    ],
   },
   {
     issueType: "Video captions appear to be automatically generated and may contain errors",
@@ -141,7 +175,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
         label: "Check captions again",
       },
     ],
-    requiresPreview: false,
   },
   {
     issueType: "Heading levels should not be skipped",
@@ -150,6 +183,12 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review heading order",
     busyLabel: "Opening heading remediation...",
     workspaceGuidance: "Adjust the selected heading level in Canvas so the page outline does not skip levels, then save.",
+    udoitActions: [
+      {
+        action: "save-and-next",
+        label: "Save and go to next",
+      },
+    ],
   },
   {
     issueType: "Headings should contain text",
@@ -158,6 +197,16 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review empty heading",
     busyLabel: "Opening heading remediation...",
     workspaceGuidance: "Add meaningful heading text or remove the empty heading element in Canvas, then save.",
+    udoitActions: [
+      {
+        action: "prepare-empty-heading-removal",
+        label: "Prepare heading removal",
+      },
+      {
+        action: "save-and-next",
+        label: "Save and go to next",
+      },
+    ],
   },
   {
     issueType: "No headings found",
@@ -166,7 +215,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review page headings",
     busyLabel: "Opening heading review...",
     workspaceGuidance: "Add a meaningful heading structure in Canvas, then save. Wand will not choose heading text for you.",
-    requiresPreview: false,
   },
   {
     issueType: "Link text should not be empty",
@@ -175,7 +223,12 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review empty link",
     busyLabel: "Opening link remediation...",
     workspaceGuidance: "Add descriptive visible link text in Canvas, then save.",
-    requiresPreview: false,
+    udoitActions: [
+      {
+        action: "save-and-next",
+        label: "Save and go to next",
+      },
+    ],
   },
   {
     issueType: "No table headers found",
@@ -194,7 +247,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
         label: "Save and go to next",
       },
     ],
-    requiresPreview: false,
   },
   {
     issueType: "No row or column scopes declarations found in table headers",
@@ -213,7 +265,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
         label: "Save and go to next",
       },
     ],
-    requiresPreview: false,
   },
   {
     issueType: "Insufficient text color contrast with the background",
@@ -240,7 +291,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
         label: "Check captions again",
       },
     ],
-    requiresPreview: false,
   },
   {
     issueType: "Caption status could not be verified for this video",
@@ -258,7 +308,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
         label: "Check captions again",
       },
     ],
-    requiresPreview: false,
   },
   {
     issueType: "Links to multimedia require transcripts",
@@ -280,7 +329,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review external content",
     busyLabel: "Opening external-content review...",
     workspaceGuidance: "Review the linked or embedded resource for keyboard access, meaningful labels, captions or transcripts, and other relevant accessibility requirements. Replace it or provide an accessible alternative when the external resource cannot be corrected.",
-    requiresPreview: false,
   },
   {
     issueType: "Content may exceed recommended length for readability (3000+ words)",
@@ -288,7 +336,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review content length",
     busyLabel: "Opening readability review...",
     workspaceGuidance: "Review the page structure and consider dividing long content into meaningful sections or pages. Preserve context and navigation when splitting it.",
-    requiresPreview: false,
   },
   {
     issueType: "Deprecated font tag in use",
@@ -303,7 +350,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review document direction",
     busyLabel: "Opening direction review...",
     workspaceGuidance: "Verify the page's reading direction. In the HTML editor, set the appropriate left-to-right or right-to-left direction when the content requires it.",
-    requiresPreview: false,
   },
   {
     issueType: "Lists should be formatted as lists",
@@ -320,7 +366,6 @@ export const REMEDIATION_DEFINITIONS: RemediationDefinition[] = [
     actionLabel: "Review layout table",
     busyLabel: "Opening table review...",
     workspaceGuidance: "Review whether the table is layout-only. Replace it with regular Canvas content when appropriate, then save.",
-    requiresPreview: false,
   },
   {
     issueType: "Styles might be used for tabular data where semantic markup may be more appropriate",

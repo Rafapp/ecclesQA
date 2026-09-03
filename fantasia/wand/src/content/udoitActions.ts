@@ -6,6 +6,7 @@ import { isVisible } from "./udoitTextInput";
 
 const PREVIEW_CONTROL_PATTERN = /^(?:expand preview|preview|show preview|view preview)$/i;
 const SAVE_CONTROL_PATTERN = /^(?:save|save changes|apply|update)$/i;
+const DELETE_EMPTY_HEADING_PATTERN = /^delete heading instead$/i;
 
 export async function expandUdoitPreview(): Promise<void> {
   postActionStateToTop(true, "Opening preview...");
@@ -50,6 +51,35 @@ export async function saveUdoitFixAndAdvance(): Promise<void> {
       postActionStateToTop(false);
     }
   }
+}
+
+export async function prepareEmptyHeadingRemoval(): Promise<void> {
+  postActionStateToTop(true, "Preparing empty-heading removal...");
+  try {
+    const checkbox = getCheckboxByLabel(DELETE_EMPTY_HEADING_PATTERN);
+    if (!checkbox) {
+      failUdoitAction("empty-heading-removal-control-not-found", "Wand couldn't find UDOIT's empty-heading removal option.");
+      return;
+    }
+
+    if (!checkbox.checked) {
+      realClick(checkbox);
+    }
+    postActionSuccessToTop("Empty-heading removal is selected. Review the preview, then save when ready.");
+  } finally {
+    postActionStateToTop(false);
+  }
+}
+
+function getCheckboxByLabel(pattern: RegExp): HTMLInputElement | null {
+  const label = Array.from(document.querySelectorAll<HTMLLabelElement>("label"))
+    .find((candidate) => isVisible(candidate) && pattern.test(normalize(candidate.innerText || candidate.textContent)));
+  if (!label) {
+    return null;
+  }
+
+  const input = label.htmlFor ? document.getElementById(label.htmlFor) : label.querySelector("input[type='checkbox']");
+  return input instanceof HTMLInputElement && input.type === "checkbox" ? input : null;
 }
 
 function getEnabledControl(pattern: RegExp): HTMLElement | null {

@@ -7,9 +7,10 @@ Wand recognizes every non-file issue type in the current Rafael's Test Course UD
 | Issue family | Assistance |
 | --- | --- |
 | Nondescript link text | Cleans safe filename-like text for review without saving |
-| Filename-based image alternative text | Cleans the filename into a starting label for review without saving |
+| Image alternative text | Cleans filename-based labels when safe and provides save/next controls for reviewer-entered labels without inventing descriptions |
 | Color-only communication | Selects the matching Canvas content and offers an explicit bold-cue action |
 | Automatically generated, missing, or unverifiable captions | Opens the Canvas source and provides media-platform and caption-status actions |
+| Empty or skipped headings | Provides reviewed removal or heading-order controls and explicit save/next actions |
 | Missing table headers or header scopes | Opens the source and provides preview and explicit save/next controls |
 
 ## Reviewer-guided remediation

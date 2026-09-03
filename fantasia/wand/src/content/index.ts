@@ -4,7 +4,7 @@ import { isTopFrame, listenForActionState, listenForActionSuccess, listenForCanv
 import { initializeHandlers } from "./handlers";
 import { createPanel, setPanelBusy, showPanelError, showPanelSuccess, updatePanelSnapshot } from "./panel";
 import { refreshUdoitCaptionStatus } from "./udoitCaptionRemediator";
-import { expandUdoitPreview, saveUdoitFixAndAdvance } from "./udoitActions";
+import { expandUdoitPreview, prepareEmptyHeadingRemoval, saveUdoitFixAndAdvance } from "./udoitActions";
 import { initializeUdoitDetector } from "./udoitDetector";
 import { confirmUdoitWorkspaceOpened, startUdoitRemediation } from "./udoitRemediator";
 import { improveUdoitLinkText } from "./udoitLinkRemediator";
@@ -63,6 +63,7 @@ const panel = wandConfig.features.panel && topFrame ? createPanel(
   (action) => {
     const labels = {
       "expand-preview": "Opening preview...",
+      "prepare-empty-heading-removal": "Preparing empty-heading removal...",
       "save-and-next": "Saving and loading the next issue...",
     };
     setPanelBusy(panel!, true, labels[action]);
@@ -166,6 +167,10 @@ if (panel) {
 
     if (command.type === "save-and-next" && window.location.hostname === "udoit3.ciditools.com") {
       void saveUdoitFixAndAdvance();
+    }
+
+    if (command.type === "prepare-empty-heading-removal" && window.location.hostname === "udoit3.ciditools.com") {
+      void prepareEmptyHeadingRemoval();
     }
 
     if (command.type === "apply-color-cue" && window.location.hostname.endsWith(".instructure.com")) {

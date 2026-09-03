@@ -2,6 +2,8 @@
 
 Load `fantasia/wand/dist` as the unpacked extension, open Rafael's Test Course only, and use the Wand popup's **Reload Wand** button after each new build.
 
+The latest issue-by-issue evidence is recorded in [LIVE_VALIDATION.md](LIVE_VALIDATION.md).
+
 ## Quick regression pass
 
 1. Open a supported UDOIT review item and confirm the Wand action label matches the issue type.
