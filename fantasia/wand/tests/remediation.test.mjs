@@ -46,7 +46,7 @@ test("cleans image filename alternative text", () => {
 });
 
 test("registers all sprint remediations and caption alias", () => {
-  assert.equal(SUPPORTED_REMEDIATIONS.length, 15);
+  assert.equal(SUPPORTED_REMEDIATIONS.length, 29);
   assert.equal(getRemediationDefinition("Closed Captions Were Auto-Generated")?.actionLabel, "Review video captions");
   assert.equal(
     getRemediationDefinition("Potential use of color alone to communicate information")?.workspaceActions?.[0]?.action,
@@ -54,4 +54,40 @@ test("registers all sprint remediations and caption alias", () => {
   );
   assert.equal(getRemediationDefinition("No table headers found")?.udoitActions?.[0]?.action, "expand-preview");
   assert.equal(getRemediationDefinition("Insufficient color contrast")?.actionLabel, "Review color contrast");
+});
+
+test("recognizes every page issue exported by the UDOIT test course", () => {
+  const exportedIssueTypes = [
+    "Alternative text appears to be a generic placeholder",
+    "Alternative text is too lengthy for optimal screen reader experience",
+    "Alternative text uses filename rather than a descriptive label",
+    "Caption status could not be verified for this video",
+    "Content may exceed recommended length for readability (3000+ words)",
+    "Decorative image does not have an empty alternative text",
+    "Deprecated font tag in use",
+    "Document reading direction not found",
+    "Embedded video is missing captions",
+    "Headings may be missing",
+    "Image does not include an alt\" attribute\"",
+    "Image long description is identical to alternative text",
+    "Insufficient text color contrast with the background",
+    "Link does not contain text",
+    "Link has nondescript text",
+    "Linked image does not have a descriptive alternative text",
+    "Links to multimedia require transcripts",
+    "Links to sound files need transcripts",
+    "One or more heading elements do not contain text",
+    "Page contains skipped headings",
+    "Potential use of color alone to communicate information",
+    "Styles might be used for tabular data where semantic markup may be more appropriate",
+    "Styles might be used instead of semantic markup for structure",
+    "Table does not include header rows or columns",
+    "Table headers are missing row or column scope attributes",
+    "Table without content detected",
+    "Video captions appear to be automatically generated and may contain errors",
+  ];
+
+  for (const issueType of exportedIssueTypes) {
+    assert.ok(getRemediationDefinition(issueType), `Missing remediation definition for: ${issueType}`);
+  }
 });

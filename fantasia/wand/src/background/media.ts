@@ -1,4 +1,9 @@
-import { OPEN_MEDIA_PLATFORM_MESSAGE, type OpenMediaPlatformMessage } from "../shared/remediation";
+const OPEN_MEDIA_PLATFORM_MESSAGE = "wand:open-media-platform";
+
+type OpenMediaPlatformMessage = {
+  type: typeof OPEN_MEDIA_PLATFORM_MESSAGE;
+  url: string;
+};
 
 export function initializeMediaPlatformRouting(): void {
   chrome.runtime.onMessage.addListener((message: Partial<OpenMediaPlatformMessage>, _sender, sendResponse) => {

@@ -13,6 +13,7 @@ const ISSUE_COUNTER_PATTERN = /\b(?:issue|file)\s+\d+\s+of\s+(\d+)\b/i;
 const PAGINATION_COUNTER_PATTERN = /\b\d+\s*[-–]\s*\d+\s+of\s+(\d+)\b/i;
 const TOTAL_ISSUES_PATTERN = /\b(\d+)\s+(?:issues?|errors?|warnings?)\b/i;
 const ISSUE_COUNTER_DETAIL_PATTERN = /\bIssue\s+(\d+)\s+of\s+(\d+)\b/i;
+const REMEDIATION_DIALOG_PATTERN = /\bfound in\s*:/i;
 const MAX_ISSUES = 20;
 
 let observer: MutationObserver | null = null;
@@ -186,7 +187,9 @@ function getModalIssueType(dialog: HTMLElement): string {
 
 function getVisibleDialog(): HTMLElement | null {
   const dialogs = Array.from(document.querySelectorAll<HTMLElement>("[role='dialog']"));
-  return dialogs.find(isVisible) ?? null;
+  return dialogs.find((dialog) =>
+    isVisible(dialog) && REMEDIATION_DIALOG_PATTERN.test(normalize(dialog.innerText || dialog.textContent))
+  ) ?? null;
 }
 
 function isLikelyIssueType(text: string): boolean {

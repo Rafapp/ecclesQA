@@ -34,12 +34,15 @@ File repair, desktop apps, and server-side batch systems are outside the current
 | P0 | Filename-based image alternative-text cleanup | 5,070 / 298 | In testing | Filename cleanup is suggested with visible confirmation and no automatic save |
 | P0 | Automatically generated caption review | 3,875 / 245 | In testing | Correct media opens; platform and UDOIT recheck actions work or fail visibly |
 | P0 | Cross-workflow hardening | Protects all current modes | In progress | Test-course regression passes; loading, timeout, toast, logging, reload, and next-issue behavior are reliable |
-| P1 | Table header rows and columns | 3,567 / 276 | Planned | Identify the table and provide safe header guidance or an explicit reviewed edit |
-| P1 | Missing headings and skipped heading levels | 4,035 combined; up to 377 courses | Planned | Identify the location and guide a valid heading hierarchy without guessing structure |
-| P1 | Links with no text | 1,954 / 304 | Planned | Identify the link and require descriptive text before resolution |
-| P2 | Insufficient color contrast | 1,562 / 127 | Planned | Report measured colors and suggest a compliant branded alternative for review |
-| P2 | Missing video captions | 1,044 / 164 | Planned | Open the correct media workflow and verify refreshed UDOIT status |
-| P2 | Styled tabular data and external-content review | 3,760 combined | Planned | Prioritize reliable identification and guidance; do not claim third-party content was repaired |
+| P1 | Table header rows and columns | 3,567 / 276 | In testing | Identify the table and provide safe header guidance or an explicit reviewed edit |
+| P1 | Missing headings and skipped heading levels | 4,035 combined; up to 377 courses | In testing | Identify the location and guide a valid heading hierarchy without guessing structure |
+| P1 | Links with no text | 1,954 / 304 | In testing | Identify the link and require descriptive text before resolution |
+| P2 | Insufficient color contrast | 1,562 / 127 | In testing | Report measured colors and suggest a compliant branded alternative for review |
+| P2 | Missing video captions | 1,044 / 164 | In testing | Open the correct media workflow and verify refreshed UDOIT status |
+| P2 | Image alternative-text review | Test-course coverage | In testing | Identify generic, lengthy, missing, decorative, duplicated, and linked-image text cases without inventing descriptions |
+| P2 | Transcript, readability, and document metadata review | Test-course coverage | In testing | Open the correct source and provide issue-specific reviewer guidance without claiming an automatic repair |
+| P2 | Styled tabular data and empty-table review | Test-course coverage | In testing | Identify the relevant content and guide semantic table decisions without guessing structure |
+| P2 | External-content review | Production backlog | Planned | Prioritize reliable identification and guidance; do not claim third-party content was repaired |
 | Deferred | PDF, DOC, PPT, and XLS repair inside Wand | 43,875 file findings | Deferred | Remains outside the extension |
 
 ## Feature Ideas

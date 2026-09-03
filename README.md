@@ -69,7 +69,7 @@ Do not keep old production versions as copied folders in the repo. Recreate them
 
 ## Current Milestone
 
-Wand field validation is focused on the five supported UDOIT issue families documented in [ROADMAP.md](ROADMAP.md):
+Wand's assisted remediation remains focused on five high-volume UDOIT issue families documented in [ROADMAP.md](ROADMAP.md):
 
 - Styles might be used instead of semantic markup for structure.
 - Link has nondescript text.
@@ -77,4 +77,4 @@ Wand field validation is focused on the five supported UDOIT issue families docu
 - Alternative text uses filename rather than a descriptive label.
 - Video captions appear to be automatically generated and may contain errors.
 
-Additional reviewer-guided support is being added for non-file UDOIT issues such as table headers/scopes, empty or skipped headings, empty links, missing captions, list formatting, layout tables, and color contrast.
+Wand now recognizes all 27 non-file issue names in the current Rafael's Test Course export, plus list-formatting and layout-table modes retained for broader coverage. Subjective corrections use reviewer-guided Canvas workflows. See [the support matrix](fantasia/wand/SUPPORT.md).
