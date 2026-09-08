@@ -1,5 +1,6 @@
 import panelStyles from "../content.css?raw";
 import { DIAGNOSTIC_LOG_STORAGE_KEY, type DiagnosticEvent } from "../shared/diagnostics";
+import { copyText, createFeedbackDraft, createFeedbackId, formatFeedbackDraft, getRecentDiagnostics, saveFeedbackDraft, type FeedbackKind } from "./feedback";
 import { getRemediationDefinition, isSupportedRemediation, SUPPORTED_REMEDIATIONS, type UdoitAction, type WorkspaceAction } from "../shared/remediation";
 import type { PageSnapshot } from "../shared/types";
 
@@ -15,6 +16,8 @@ const COLLAPSED_CLASS = "wand-panel--collapsed";
 const TOAST_ID = "wand-panel-toast";
 const WORKSPACE_ACTION_ATTRIBUTE = "data-wand-workspace-action";
 const UDOIT_ACTION_ATTRIBUTE = "data-wand-udoit-action";
+const FEEDBACK_KIND_ATTRIBUTE = "data-wand-feedback-kind";
+const FEEDBACK_DIALOG_ID = "wand-feedback-dialog";
 
 let workspaceActive = false;
 let lastSnapshot: PageSnapshot | null = null;
@@ -56,28 +59,31 @@ export function createPanel(
     closeSupportedErrorsWhenClickingElsewhere(panel, event.target);
   });
 
-  if (onRemediate || onResolve) {
-    panel.addEventListener("click", (event) => {
-      const target = event.target instanceof HTMLElement ? event.target : null;
-      if (target?.id === ACTION_ID) {
-        onRemediate?.();
-      }
+  panel.addEventListener("click", (event) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (target?.id === ACTION_ID) {
+      onRemediate?.();
+    }
 
-      if (target?.id === RESOLVE_ID) {
-        onResolve?.();
-      }
+    if (target?.id === RESOLVE_ID) {
+      onResolve?.();
+    }
 
-      const workspaceAction = target?.getAttribute(WORKSPACE_ACTION_ATTRIBUTE) as WorkspaceAction | null;
-      if (workspaceAction) {
-        onWorkspaceAction?.(workspaceAction);
-      }
+    const workspaceAction = target?.getAttribute(WORKSPACE_ACTION_ATTRIBUTE) as WorkspaceAction | null;
+    if (workspaceAction) {
+      onWorkspaceAction?.(workspaceAction);
+    }
 
-      const udoitAction = target?.getAttribute(UDOIT_ACTION_ATTRIBUTE) as UdoitAction | null;
-      if (udoitAction) {
-        onUdoitAction?.(udoitAction);
-      }
-    });
-  }
+    const udoitAction = target?.getAttribute(UDOIT_ACTION_ATTRIBUTE) as UdoitAction | null;
+    if (udoitAction) {
+      onUdoitAction?.(udoitAction);
+    }
+
+    const feedbackKind = target?.getAttribute(FEEDBACK_KIND_ATTRIBUTE) as FeedbackKind | null;
+    if (feedbackKind) {
+      openFeedbackDialog(feedbackKind);
+    }
+  });
   window.addEventListener("wand:workspace-state", (event) => {
     const active = event instanceof CustomEvent ? Boolean(event.detail?.active) : false;
     workspaceActive = active;
@@ -101,7 +107,7 @@ export function updatePanelSnapshot(panel: HTMLElement, snapshot: PageSnapshot):
 
 function renderPanel(panel: HTMLElement, snapshot: PageSnapshot | null): void {
   const toggle = panel.querySelector(`#${TOGGLE_ID}`);
-  panel.replaceChildren(createLabel(), createMainContent(snapshot), createVersion());
+  panel.replaceChildren(createLabel(), createMainContent(snapshot), createPanelTools());
   if (toggle instanceof HTMLElement) {
     panel.prepend(toggle);
   }
@@ -246,11 +252,141 @@ function createWorkspaceAction(snapshot: PageSnapshot | null): HTMLElement {
   return wrapper;
 }
 
-function createVersion(): HTMLElement {
+function createPanelTools(): HTMLElement {
+  const tools = document.createElement("div");
+  tools.className = "wand-panel__tools";
+
   const version = document.createElement("div");
   version.className = "wand-panel__version";
   version.textContent = VERSION_LABEL;
-  return version;
+
+  const actions = document.createElement("div");
+  actions.className = "wand-panel__feedback-actions";
+  actions.append(
+    createFeedbackButton("bug", "Report bug"),
+    createFeedbackButton("suggestion", "Suggest")
+  );
+  tools.append(version, actions);
+  return tools;
+}
+
+function createFeedbackButton(kind: FeedbackKind, label: string): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "wand-panel__feedback-button";
+  button.setAttribute(FEEDBACK_KIND_ATTRIBUTE, kind);
+  button.textContent = label;
+  return button;
+}
+
+function openFeedbackDialog(kind: FeedbackKind): void {
+  document.getElementById(FEEDBACK_DIALOG_ID)?.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = FEEDBACK_DIALOG_ID;
+  overlay.className = "wand-feedback";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-labelledby", "wand-feedback-title");
+
+  const card = document.createElement("div");
+  card.className = "wand-feedback__card";
+  const title = document.createElement("h2");
+  title.id = "wand-feedback-title";
+  title.textContent = kind === "bug" ? "Report a Wand bug" : "Suggest a Wand improvement";
+  const intro = document.createElement("p");
+  intro.textContent = "Your report is saved on this device and copied for sharing. Central delivery can be connected later.";
+
+  const form = document.createElement("form");
+  const summary = createFeedbackField("Summary", "wand-feedback-summary", "input");
+  const details = createFeedbackField("What happened or what would help?", "wand-feedback-details", "textarea");
+  const diagnosticsLabel = document.createElement("label");
+  diagnosticsLabel.className = "wand-feedback__check";
+  const diagnostics = document.createElement("input");
+  diagnostics.type = "checkbox";
+  diagnostics.checked = kind === "bug";
+  diagnosticsLabel.append(diagnostics, " Include up to five recent Wand diagnostic events");
+
+  const status = document.createElement("p");
+  status.className = "wand-feedback__status";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+
+  const actions = document.createElement("div");
+  actions.className = "wand-feedback__actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "Cancel";
+  cancel.addEventListener("click", () => overlay.remove());
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.className = "wand-feedback__submit";
+  submit.textContent = "Save and copy report";
+  actions.append(cancel, submit);
+
+  form.append(summary.wrapper, details.wrapper, diagnosticsLabel, status, actions);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    status.textContent = "Preparing report…";
+    try {
+      const draft = createFeedbackDraft({
+        id: createFeedbackId(),
+        kind,
+        summary: summary.control.value,
+        details: details.control.value,
+        pageUrl: window.location.href,
+        issueType: lastSnapshot?.remediation?.issueType ?? lastSnapshot?.activeIssueType,
+        sourceTitle: lastSnapshot?.remediation?.sourceTitle,
+        appVersion: __APP_VERSION__,
+        createdAt: Date.now(),
+        diagnostics: await getRecentDiagnostics(diagnostics.checked),
+      });
+      if (!draft.summary || !draft.details) {
+        status.textContent = "Please add both a summary and details.";
+        return;
+      }
+      await saveFeedbackDraft(draft);
+      const copied = await copyText(formatFeedbackDraft(draft));
+      status.textContent = copied
+        ? "Saved locally and copied. Paste it into your team channel when ready."
+        : "Saved locally. Clipboard access was unavailable.";
+      submit.textContent = "Saved";
+    } catch (error) {
+      status.textContent = "Wand couldn't save this report.";
+      console.error("[wand] Failed to save feedback draft.", error);
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  card.append(title, intro, form);
+  overlay.append(card);
+  overlay.addEventListener("pointerdown", (event) => {
+    if (event.target === overlay) {
+      overlay.remove();
+    }
+  });
+  document.documentElement.append(overlay);
+  summary.control.focus();
+}
+
+function createFeedbackField(labelText: string, id: string, type: "input" | "textarea") {
+  const wrapper = document.createElement("label");
+  wrapper.className = "wand-feedback__field";
+  wrapper.htmlFor = id;
+  const label = document.createElement("span");
+  label.textContent = labelText;
+  const control = type === "textarea" ? document.createElement("textarea") : document.createElement("input");
+  control.id = id;
+  control.required = true;
+  if (control instanceof HTMLInputElement) {
+    control.type = "text";
+  } else {
+    control.rows = 5;
+  }
+  wrapper.append(label, control);
+  return { wrapper, control };
 }
 
 function createGuidance(text: string, tone: "error" | "info" | "needed"): HTMLElement {

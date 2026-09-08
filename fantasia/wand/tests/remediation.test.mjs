@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getFilenameLabelSuggestion } from "../src/shared/filenameLabel.ts";
+import { createFeedbackDraft, formatFeedbackDraft } from "../src/shared/feedback.ts";
 import { cleanNondescriptLinkText, getLinkTextSuggestion } from "../src/shared/linkText.ts";
 import { ADVANCE_PENDING_MAX_AGE_MS, getRemediationDefinition, isAdvancePendingFresh, REMEDIATION_DEFINITIONS, SUPPORTED_REMEDIATIONS } from "../src/shared/remediation.ts";
 
@@ -133,4 +134,32 @@ test("recognizes the live missing-alt title and malformed CSV title", () => {
     getRemediationDefinition('Image does not include an alt" attribute"')?.actionLabel,
     "Add image alternative text"
   );
+});
+
+test("creates a shareable feedback draft with bounded diagnostics", () => {
+  const diagnostics = Array.from({ length: 7 }, (_, index) => ({
+    code: `failure-${index}`,
+    message: "Example failure",
+    url: "https://utah.instructure.com/courses/1277912",
+    appVersion: "1.1.0",
+    observedAt: 1000 + index,
+  }));
+  const draft = createFeedbackDraft({
+    id: "wand-test-report",
+    kind: "bug",
+    summary: "  Next issue stayed open  ",
+    details: "  Canvas did not update.  ",
+    pageUrl: "https://utah.instructure.com/courses/1277912/external_tools/206605",
+    issueType: "Headings should contain text",
+    sourceTitle: "Heading fixtures",
+    appVersion: "1.1.0",
+    createdAt: 1000,
+    diagnostics,
+  });
+
+  assert.equal(draft.summary, "Next issue stayed open");
+  assert.equal(draft.details, "Canvas did not update.");
+  assert.equal(draft.diagnostics.length, 5);
+  assert.match(formatFeedbackDraft(draft), /Wand bug report/);
+  assert.match(formatFeedbackDraft(draft), /Headings should contain text/);
 });

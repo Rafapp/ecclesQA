@@ -44,7 +44,8 @@ input {
 
 .brand-header small,
 .toggle-row small,
-.reload-button small {
+.reload-button small,
+.feedback-card small {
   margin-top: 2px;
   color: #626262;
   font-size: 11px;
@@ -197,4 +198,138 @@ input {
 
 .message.error {
   color: #be0000;
+}
+
+.feedback-card {
+  margin-top: 10px;
+  padding: 13px 14px;
+  border: 1px solid #dedede;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.feedback-card__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.feedback-card__heading strong,
+.feedback-card__heading small {
+  display: block;
+}
+
+.feedback-card__heading strong {
+  font-size: 13px;
+}
+
+.draft-count {
+  flex: 0 0 auto;
+  color: #626262;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.feedback-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.feedback-choices button,
+.feedback-form__actions button,
+.export-button {
+  min-height: 34px;
+  border: 1px solid #be0000;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #be0000;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.feedback-choices button:hover,
+.feedback-form__actions button:hover,
+.export-button:hover {
+  background: #fff6f6;
+}
+
+.feedback-choices button:focus-visible,
+.feedback-form input:focus-visible,
+.feedback-form textarea:focus-visible,
+.feedback-form__actions button:focus-visible,
+.export-button:focus-visible {
+  outline: 3px solid #ffb81d;
+  outline-offset: 2px;
+}
+
+.feedback-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.feedback-form[hidden] {
+  display: none;
+}
+
+.feedback-form h2 {
+  margin: 0;
+  color: #be0000;
+  font-size: 14px;
+}
+
+.feedback-form label:not(.diagnostic-option) {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.feedback-form input[type="text"],
+.feedback-form textarea {
+  width: 100%;
+  padding: 8px 9px;
+  border: 1px solid #a0a0a0;
+  border-radius: 6px;
+  color: #2d2d2d;
+  background: #ffffff;
+  font: inherit;
+  resize: vertical;
+}
+
+.diagnostic-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #626262;
+  font-size: 10px;
+}
+
+.feedback-form__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.feedback-form__actions .feedback-submit {
+  background: #be0000;
+  color: #ffffff;
+}
+
+.feedback-form__actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.export-button {
+  width: 100%;
+  min-height: 28px;
+  margin-top: 8px;
+  border-color: #cccccc;
+  color: #555555;
 }

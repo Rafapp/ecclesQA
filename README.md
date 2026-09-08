@@ -2,6 +2,8 @@
 
 Issue inspection and automation tools for the Eccles School of Business Instructional Design team.
 
+The shared installation site lives in `fantasia-site`. It presents versioned Wand and Magic downloads and is designed to add Sorcerer without restructuring the site.
+
 ## Active Project
 
 `fantasia/wand` is the active production project. Wand is a Manifest V3 Chrome extension for UDOIT and Canvas. Its current goal is to help reviewers inspect supported UDOIT findings, open the matching Canvas content, highlight the target, and move through the remediation workflow with clear reviewer control.
@@ -21,6 +23,8 @@ Current package version: `1.1.0`
 5. Turn on Developer mode.
 6. Click Load unpacked and choose the unzipped extension folder.
 
+The Fantasia installation site provides the same steps in a team-friendly format, including current Magic screenshots.
+
 ### Use
 
 1. Open a course in UDOIT and run a scan.
@@ -29,6 +33,8 @@ Current package version: `1.1.0`
 4. Review the highlighted target and apply the fix in Canvas.
 
 Wand runs only on UDOIT and Canvas pages declared in the extension manifest.
+
+Bug reports and suggestions can be created from the Chrome toolbar popup or the bottom Wand panel. Drafts are saved locally, optionally include recent Wand diagnostics, and can be copied or exported until a central team endpoint is approved.
 
 ## Development
 

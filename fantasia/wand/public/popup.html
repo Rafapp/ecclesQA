@@ -42,6 +42,40 @@
         </span>
       </button>
 
+      <section class="feedback-card" aria-labelledby="feedback-title">
+        <div class="feedback-card__heading">
+          <span>
+            <strong id="feedback-title">Help improve Wand</strong>
+            <small>Save a report locally and copy it for the team</small>
+          </span>
+          <span class="draft-count" id="draft-count"></span>
+        </div>
+        <div class="feedback-choices" id="feedback-choices">
+          <button type="button" data-feedback-kind="bug">Report a bug</button>
+          <button type="button" data-feedback-kind="suggestion">Suggest an improvement</button>
+        </div>
+        <form class="feedback-form" id="feedback-form" hidden>
+          <h2 id="feedback-form-title">Create report</h2>
+          <label>
+            <span>Summary</span>
+            <input id="feedback-summary" type="text" required>
+          </label>
+          <label>
+            <span>Details</span>
+            <textarea id="feedback-details" rows="4" required></textarea>
+          </label>
+          <label class="diagnostic-option">
+            <input id="feedback-diagnostics" type="checkbox">
+            <span>Include recent Wand diagnostics</span>
+          </label>
+          <div class="feedback-form__actions">
+            <button id="feedback-cancel" type="button">Cancel</button>
+            <button class="feedback-submit" id="feedback-submit" type="submit">Save and copy</button>
+          </div>
+        </form>
+        <button class="export-button" id="export-feedback" type="button">Export saved reports</button>
+      </section>
+
       <p class="message" id="message" role="status" aria-live="polite"></p>
     </main>
     <script type="module" src="popup.js"></script>

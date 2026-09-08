@@ -85,12 +85,40 @@
 }
 
 .wand-panel__version {
-  justify-self: end;
-  padding-right: 12px;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0;
+}
+
+.wand-panel__tools {
+  display: grid;
+  gap: 5px;
+  justify-items: end;
+  padding-right: 4px;
+}
+
+.wand-panel__feedback-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.wand-panel__feedback-button {
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1px solid rgb(255 255 255 / 75%);
+  border-radius: 999px;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  font: 700 11px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.wand-panel__feedback-button:hover,
+.wand-panel__feedback-button:focus-visible {
+  border-color: var(--wand-brand-secondary);
+  color: var(--wand-brand-secondary);
+  outline: none;
 }
 
 .wand-panel__meta {
@@ -239,6 +267,118 @@
 .wand-panel__toast--success {
   border-color: #2f6f3e;
   color: #245b32;
+}
+
+.wand-feedback {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 52%);
+  font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.wand-feedback__card {
+  width: min(540px, 100%);
+  max-height: calc(100vh - 48px);
+  padding: 22px;
+  overflow-y: auto;
+  border: 2px solid var(--wand-brand-primary);
+  border-radius: 12px;
+  background: #ffffff;
+  color: #242424;
+  box-shadow: 0 20px 70px rgb(0 0 0 / 36%);
+}
+
+.wand-feedback__card h2 {
+  margin: 0;
+  color: var(--wand-brand-primary);
+  font-size: 21px;
+}
+
+.wand-feedback__card p {
+  margin: 6px 0 16px;
+}
+
+.wand-feedback__card form,
+.wand-feedback__field {
+  display: grid;
+  gap: 7px;
+}
+
+.wand-feedback__card form {
+  gap: 14px;
+}
+
+.wand-feedback__field span {
+  font-weight: 750;
+}
+
+.wand-feedback__field input,
+.wand-feedback__field textarea {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid #777777;
+  border-radius: 7px;
+  color: #242424;
+  background: #ffffff;
+  font: inherit;
+}
+
+.wand-feedback__field input:focus,
+.wand-feedback__field textarea:focus {
+  border-color: var(--wand-brand-primary);
+  outline: 3px solid rgb(255 184 29 / 42%);
+}
+
+.wand-feedback__check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+}
+
+.wand-feedback__status {
+  min-height: 20px;
+  margin: 0 !important;
+  color: #555555;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.wand-feedback__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.wand-feedback__actions button {
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid #777777;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #242424;
+  cursor: pointer;
+  font: 750 13px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.wand-feedback__actions .wand-feedback__submit {
+  border-color: var(--wand-brand-primary);
+  background: var(--wand-brand-primary);
+  color: #ffffff;
+}
+
+.wand-feedback__actions button:focus-visible {
+  outline: 3px solid var(--wand-brand-secondary);
+  outline-offset: 2px;
+}
+
+.wand-feedback__actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .wand-panel__text--info {

@@ -28,12 +28,13 @@ File repair, desktop apps, and server-side batch systems are outside the current
 
 | Priority | Capability | Evidence | Status | Exit criteria |
 | :-: | --- | --- | :-: | --- |
-| P0 | Styled-heading remediation | 19,889 findings / 474 courses | In testing | Correct Canvas item opens, target is selected, save/next remains synchronized |
-| P0 | Nondescript-link cleanup | 17,527 / 495 | In testing | Safe suggestion is applied without auto-saving; unsupported text fails visibly |
-| P0 | Color-only identification and optional bold cue | 7,308 / 234 | In testing | Correct content is selected; reviewer explicitly applies and saves any cue |
-| P0 | Filename-based image alternative-text cleanup | 5,070 / 298 | In testing | Filename cleanup is suggested with visible confirmation and no automatic save |
-| P0 | Automatically generated caption review | 3,875 / 245 | In testing | Correct media opens; platform and UDOIT recheck actions work or fail visibly |
-| P0 | Cross-workflow hardening | Protects all current modes | In progress | Test-course regression passes; loading, timeout, toast, logging, reload, and next-issue behavior are reliable |
+| P0 | Styled-heading remediation | 19,889 findings / 474 courses | ✅ Validated | Correct Canvas item opens, target is selected, save/next remains synchronized |
+| P0 | Nondescript-link cleanup | 17,527 / 495 | ✅ Validated | Safe suggestion is applied without auto-saving; unsupported text fails visibly |
+| P0 | Color-only identification and optional bold cue | 7,308 / 234 | ✅ Validated | Correct content is selected; reviewer explicitly applies and saves any cue |
+| P0 | Filename-based image alternative-text cleanup | 5,070 / 298 | ✅ Validated | Filename cleanup is suggested with visible confirmation and no automatic save |
+| P0 | Automatically generated caption review | 3,875 / 245 | ✅ Validated | Correct media opens; platform and UDOIT recheck actions work or fail visibly |
+| P0 | Cross-workflow hardening | Protects all current modes | 🧪 In testing | Test-course regression passes; loading, timeout, toast, logging, reload, reporting, and next-issue behavior are reliable |
+| P0 | Team installation site and releases | Removes manual GitHub navigation | 🧪 In testing | Public guidance is live; Wand distribution remains intentionally paused pending University IT direction |
 | P1 | Table header rows and columns | 3,567 / 276 | In testing | Identify the table and provide safe header guidance or an explicit reviewed edit |
 | P1 | Missing headings and skipped heading levels | 4,035 combined; up to 377 courses | In testing | Identify the location and guide a valid heading hierarchy without guessing structure |
 | P1 | Links with no text | 1,954 / 304 | In testing | Identify the link and require descriptive text before resolution |
@@ -47,13 +48,14 @@ File repair, desktop apps, and server-side batch systems are outside the current
 
 ## Feature Ideas
 
-- Add first-class bug and suggestion reporting inside the extension, with a reviewer-approved diagnostic bundle that can include the active issue type, source title, Wand version, recent action trail, DOM-safe page state, and optional screenshots.
+- Connect Wand's local bug and suggestion drafts to a team-approved HTTPS endpoint after ownership, authentication, and retention requirements are decided.
 - Add keyboard support for high-frequency review flows, including a reviewer-configurable next shortcut such as `n` for mark/save/advance once the reviewer has confirmed the current issue is ready.
 - Add a release checklist that maps GitHub release assets to tested UDOIT issue families so version support is visible without reading commit history.
 
 ## Delivery Order
 
-1. Finish Wand P0 field validation on Rafael's Test Course and release the five current remediations.
-2. Add Wand P1 Canvas remediations in order of reach and safe automation potential.
-3. Validate automated release packaging around Git tags and GitHub releases.
-4. Re-run the analytics export after each release cycle and revise priorities when issue counts or completion rates materially change.
+1. Publish the Fantasia guidance site; keep the Wand v1.1.0 package unpublished until University IT responds about distribution.
+2. Keep bug and suggestion reports local until the team selects a secure endpoint and ownership model after the University IT response.
+3. Add measured color-contrast assistance and continue deeper automation for reviewer-guided P1/P2 workflows.
+4. Add Sorcerer to the shared release site when its dashboard and workstation deployment model are ready.
+5. Re-run the analytics export after each release cycle and revise priorities when issue counts or completion rates materially change.

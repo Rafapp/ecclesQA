@@ -30,3 +30,7 @@ Wand opens the matching Canvas source, identifies the target when UDOIT provides
 ## Product boundary
 
 File findings for PDF, Word, PowerPoint, and Excel remain outside Wand. Wand does not silently save subjective corrections or claim that third-party media has been repaired.
+
+## Feedback and diagnostics
+
+The Chrome toolbar popup and Canvas/UDOIT panel can create bug reports and suggestions. Wand stores up to 50 drafts in extension-local storage, includes recent diagnostic events only when the reviewer chooses that option, and supports copy/export without requiring a server. Automatic delivery remains disabled until the team approves an authenticated endpoint and retention policy.

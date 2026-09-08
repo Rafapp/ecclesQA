@@ -18,6 +18,8 @@ The latest issue-by-issue evidence is recorded in [LIVE_VALIDATION.md](LIVE_VALI
 10. Click **Mark as resolved and go to next** only on disposable test issues. Confirm UDOIT advances and the Canvas workspace changes to the next issue.
 11. Turn Wand off and on in its popup and confirm supported open tabs refresh. Confirm **Reload Wand** reloads the extension and those tabs.
 12. If advancing cannot complete, confirm Wand stops loading, shows a bug code, and does not unexpectedly advance an issue after a later page reload.
+13. From the Wand toolbar popup, create one bug report and one suggestion. Confirm both save, copy, increment the saved count, and appear in the exported JSON file.
+14. From the bottom Wand panel, open both feedback forms and confirm the active issue and Canvas source are included when available.
 
 ## Full taxonomy spot checks
 
