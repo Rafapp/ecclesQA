@@ -2,7 +2,7 @@
 
 Issue inspection and automation tools for the Eccles School of Business Instructional Design team.
 
-The shared installation site lives in `fantasia-site`. It presents versioned Wand and Magic downloads and is designed to add Sorcerer without restructuring the site.
+The shared installation site lives in `fantasia-site`. It presents release status and setup guidance for Wand and Magic and is designed to add Sorcerer without restructuring the site.
 
 ## Active Project
 

@@ -35,7 +35,7 @@ Until University IT responds, keep using the current internal testing process. D
 
 ## 4. Completed: enable the public GitHub Pages site
 
-Completed September 8, 2026: GitHub Pages is configured to use GitHub Actions. The repository workflow will publish after its first push. The expected address is `https://rafapp.github.io/ecclesQA/`.
+Completed September 8, 2026: GitHub Pages is configured to use GitHub Actions and the site is live at `https://rafapp.github.io/ecclesQA/`.
 
 If a university-owned custom domain is approved later, add it through the same Pages settings and follow IT's DNS instructions. The managed Sites publisher was unavailable in the current workspace, so GitHub Pages is the active free deployment path.
 
