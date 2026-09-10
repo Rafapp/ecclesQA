@@ -3,11 +3,11 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Project Fantasia | Eccles School productivity tools',
-  description: 'Install and learn about Wand, Magic, and Sorcerer—focused productivity tools for accessibility review and repeatable work.',
+  description: 'A web-based toolset for the Eccles School of Business Instructional Design Team.',
   icons: { icon: '/favicon.png' },
   openGraph: {
     title: 'Project Fantasia',
-    description: 'Install Wand and Magic, and follow the development of Sorcerer.',
+    description: 'A web-based toolset for the Eccles School of Business Instructional Design Team.',
     type: 'website',
   },
 };

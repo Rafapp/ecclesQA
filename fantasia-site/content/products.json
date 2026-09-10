@@ -9,7 +9,7 @@
       "statusLabel": "Available",
       "version": "1.1.0",
       "path": "/wand",
-      "description": "Guided UDOIT and Canvas accessibility remediation in Chrome.",
+      "description": "A Chrome extension for guided UDOIT and Canvas accessibility remediation.",
       "downloadUrl": "https://github.com/Rafapp/ecclesQA/releases/latest/download/wand-extension-latest.zip"
     },
     {
@@ -20,7 +20,7 @@
       "statusLabel": "In development",
       "version": null,
       "path": "/magic",
-      "description": "Focused desktop automations for repeatable team workflows.",
+      "description": "A Windows application for accessible document review and repeatable team workflows.",
       "downloadUrl": null
     },
     {
@@ -31,7 +31,7 @@
       "statusLabel": "In development",
       "version": null,
       "path": "/sorcerer",
-      "description": "A future command center for longer-running automation work.",
+      "description": "A server and web dashboard for submitting, tracking, and completing longer-running jobs.",
       "downloadUrl": null
     }
   ],
