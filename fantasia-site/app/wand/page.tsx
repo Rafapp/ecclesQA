@@ -48,13 +48,13 @@ export default function WandPage() {
           <InstallStep number="2" title="Extract the ZIP" description={<>In Downloads, right-click the ZIP and choose <b>Extract all</b>. Move the extracted Fantasia folder to a long-term location before loading it in Chrome.</>}>
             <div className="step-visual folder-visual"><span>📁</span><strong>wand-extension-latest</strong><small>dist</small></div>
           </InstallStep>
-          <InstallStep number="3" title="Open Extensions" description={<>Enter <code>chrome://extensions</code> in Chrome’s address bar, then turn on <b>Developer mode</b>.</>}>
+          <InstallStep number="3" title="Open Extensions" description={<>Click Chrome’s address bar, type <code>chrome://extensions</code>, and press <b>Enter</b>. Then turn on <b>Developer mode</b>.</>}>
             <div className="step-visual chrome-visual"><span>chrome://extensions</span><i>Developer mode&nbsp;&nbsp;●</i></div>
           </InstallStep>
           <InstallStep number="4" title="Load Wand" description={<>Select <b>Load unpacked</b>. Open the extracted Wand folder, select the root folder, and choose <b>Select Folder</b>.</>}>
             <div className="step-visual action-visual"><strong>Load unpacked</strong><span>wand-extension-latest</span></div>
           </InstallStep>
-          <InstallStep number="5" title="Pin and begin" description={<>Open Chrome’s Extensions menu, pin Wand, then refresh any open Canvas or UDOIT tabs.</>}>
+          <InstallStep number="5" title="Pin and begin" description={<>Select the puzzle-piece icon at Chrome’s top right, find <b>Wand</b>, and select its pin icon. Select the newly pinned Fantasia icon; if installation worked, Wand’s menu opens. Then refresh any open Canvas or UDOIT tabs.</>}>
             <div className="step-visual pin-visual"><Image src="/products/wand.png" alt="" width={34} height={34} /><strong>Wand</strong><span>📌</span></div>
           </InstallStep>
         </ol>
