@@ -30,5 +30,6 @@ jobs:
           cache: npm
           cache-dependency-path: fantasia-site/package-lock.json
       - run: npm ci
+      - run: npm run docs:check
       - run: npm run lint
       - run: npm run build

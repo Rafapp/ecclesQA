@@ -1,0 +1,2 @@
+SITE_PASSWORD=replace-with-a-local-test-password
+SESSION_SECRET=replace-with-a-long-random-local-secret

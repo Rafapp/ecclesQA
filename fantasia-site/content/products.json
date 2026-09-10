@@ -1,0 +1,88 @@
+{
+  "siteName": "Project Fantasia",
+  "products": [
+    {
+      "id": "wand",
+      "name": "Wand",
+      "category": "Browser extension",
+      "status": "available",
+      "statusLabel": "Available",
+      "version": "1.1.0",
+      "path": "/wand",
+      "description": "Guided UDOIT and Canvas accessibility remediation in Chrome.",
+      "downloadUrl": "https://github.com/Rafapp/ecclesQA/releases/latest/download/wand-extension-latest.zip"
+    },
+    {
+      "id": "magic",
+      "name": "Magic",
+      "category": "Windows application",
+      "status": "development",
+      "statusLabel": "In development",
+      "version": null,
+      "path": "/magic",
+      "description": "Focused desktop automations for repeatable team workflows.",
+      "downloadUrl": null
+    },
+    {
+      "id": "sorcerer",
+      "name": "Sorcerer",
+      "category": "Server & web dashboard",
+      "status": "development",
+      "statusLabel": "In development",
+      "version": null,
+      "path": "/sorcerer",
+      "description": "A future command center for longer-running automation work.",
+      "downloadUrl": null
+    }
+  ],
+  "wandCapabilities": [
+    {
+      "name": "Open the matching Canvas source",
+      "description": "Moves from a UDOIT review item to its Canvas editing context and identifies the target when UDOIT provides enough information.",
+      "status": "available",
+      "statusLabel": "Available"
+    },
+    {
+      "name": "Styled heading remediation",
+      "description": "Guides reviewers from visual heading styles to semantic Canvas headings.",
+      "status": "validated",
+      "statusLabel": "Validated"
+    },
+    {
+      "name": "Nondescript link cleanup",
+      "description": "Turns filename-like link labels into cleaner suggestions without silently saving them.",
+      "status": "validated",
+      "statusLabel": "Validated"
+    },
+    {
+      "name": "Color-only communication review",
+      "description": "Finds the affected content and offers an explicit non-color cue for reviewer approval.",
+      "status": "validated",
+      "statusLabel": "Validated"
+    },
+    {
+      "name": "Filename-based image alternative text",
+      "description": "Cleans filename-based labels while leaving the final description and save decision to the reviewer.",
+      "status": "validated",
+      "statusLabel": "Validated"
+    },
+    {
+      "name": "Video caption review",
+      "description": "Opens caption sources and supports UDOIT status rechecks for automatic, missing, or unverifiable captions.",
+      "status": "validated",
+      "statusLabel": "Validated"
+    },
+    {
+      "name": "Heading, table, list, link, and image guidance",
+      "description": "Provides issue-specific reviewer guidance and safe actions across the current non-file UDOIT test suite.",
+      "status": "testing",
+      "statusLabel": "In testing"
+    },
+    {
+      "name": "Progress, diagnostics, and feedback drafts",
+      "description": "Shows action progress, reports failures visibly, and saves copyable bug reports or suggestions on the device.",
+      "status": "available",
+      "statusLabel": "Available"
+    }
+  ]
+}

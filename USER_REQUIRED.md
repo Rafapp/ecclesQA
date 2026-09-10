@@ -33,11 +33,26 @@ Ask University IT whether they can centrally deploy Wand through Chrome Enterpri
 
 Until University IT responds, keep using the current internal testing process. Do not publish a new Wand package solely to establish a temporary distribution path.
 
-## 4. Completed: enable the public GitHub Pages site
+## 4. Cloudflare password-protected site
 
-Completed September 8, 2026: GitHub Pages is configured to use GitHub Actions and the site is live at `https://rafapp.github.io/ecclesQA/`.
+The public GitHub Pages deployment must be disabled after the protected Cloudflare Worker is verified. In GitHub, open **Settings → Pages** and select **Unpublish site**. Do not leave `https://rafapp.github.io/ecclesQA/` available because it bypasses the password gate.
 
-If a university-owned custom domain is approved later, add it through the same Pages settings and follow IT's DNS instructions. The managed Sites publisher was unavailable in the current workspace, so GitHub Pages is the active free deployment path.
+Cloudflare deploys the site from the connected GitHub repository. Use these commands in the Cloudflare deployment screen:
+
+```text
+Build command:
+cd fantasia-site && npm ci && npm run docs:check && npm run build && (npm run start > /tmp/fantasia-site.log 2>&1 &) && npm run export:worker
+
+Deploy command:
+cd fantasia-site && npx wrangler deploy --config worker/wrangler.jsonc
+```
+
+After the first deployment, add these two values in **Workers & Pages → fantasia-site → Settings → Variables and Secrets** as **Secrets**, not plaintext variables:
+
+- `SITE_PASSWORD`: the shared team password.
+- `SESSION_SECRET`: a distinct, long random string used only to sign login sessions.
+
+Do not commit or send either value. The worker serves only the login page until the password is verified server-side.
 
 ## 5. Sorcerer workstation
 

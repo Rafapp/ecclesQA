@@ -75,14 +75,23 @@ Do not keep old production versions as copied folders in the repo. Recreate them
 
 `deprecated/Accessibility/tampermonkey/udoit.js` is retained as a reference for earlier UDOIT automation behavior. Older Python modules, analytics output, copied version folders, and retired product experiments are removed from the active tree.
 
-## Current Milestone
+## Current Capability Status
 
-Wand's assisted remediation remains focused on five high-volume UDOIT issue families documented in [ROADMAP.md](ROADMAP.md):
+<!-- WAND_CAPABILITIES:START -->
 
-- Styles might be used instead of semantic markup for structure.
-- Link has nondescript text.
-- Potential use of color alone to communicate information.
-- Alternative text uses filename rather than a descriptive label.
-- Video captions appear to be automatically generated and may contain errors.
+Current package version: `1.1.0`
 
-Wand now recognizes all 27 non-file issue names in the current Rafael's Test Course export, plus list-formatting, layout-table, and production external-content modes retained for broader coverage. Subjective corrections use reviewer-guided Canvas workflows. See [the support matrix](fantasia/wand/SUPPORT.md) and [live validation matrix](fantasia/wand/LIVE_VALIDATION.md).
+| Capability | Status |
+| --- | --- |
+| Open the matching Canvas source | Available |
+| Styled heading remediation | Validated |
+| Nondescript link cleanup | Validated |
+| Color-only communication review | Validated |
+| Filename-based image alternative text | Validated |
+| Video caption review | Validated |
+| Heading, table, list, link, and image guidance | In testing |
+| Progress, diagnostics, and feedback drafts | Available |
+
+<!-- WAND_CAPABILITIES:END -->
+
+The website and this table are generated from the same product catalog. See [the support matrix](fantasia/wand/SUPPORT.md) and [live validation matrix](fantasia/wand/LIVE_VALIDATION.md) for deeper workflow detail.

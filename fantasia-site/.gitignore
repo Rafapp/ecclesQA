@@ -35,5 +35,9 @@ next-env.d.ts
 /dist/
 /pages-dist/
 /.wrangler/
+/worker/.wrangler/
 /outputs/
 /work/
+/worker-assets/
+/.dev.vars
+/worker/.dev.vars
