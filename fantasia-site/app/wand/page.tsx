@@ -45,7 +45,7 @@ export default function WandPage() {
           <InstallStep number="1" title="Download Wand" description={<>Select <b>Download latest version</b> above. Chrome downloads <code>wand-extension-latest.zip</code>.</>}>
             <div className="step-visual download-visual"><span>ZIP</span><strong>wand-extension-latest.zip</strong></div>
           </InstallStep>
-          <InstallStep number="2" title="Extract the ZIP" description={<>In Downloads, right-click the ZIP, choose <b>Extract all</b>, and keep the extracted folder somewhere permanent.</>}>
+          <InstallStep number="2" title="Extract the ZIP" description={<>In Downloads, right-click the ZIP and choose <b>Extract all</b>. Move the extracted Fantasia folder to a long-term location before loading it in Chrome.</>}>
             <div className="step-visual folder-visual"><span>📁</span><strong>wand-extension-latest</strong><small>dist</small></div>
           </InstallStep>
           <InstallStep number="3" title="Open Extensions" description={<>Enter <code>chrome://extensions</code> in Chrome’s address bar, then turn on <b>Developer mode</b>.</>}>
@@ -59,7 +59,7 @@ export default function WandPage() {
           </InstallStep>
         </ol>
         <aside className="update-callout">
-          <div><strong>Updating later</strong><p>Download the newest ZIP, replace the extracted folder, and select <b>Reload Wand</b> from the extension popup.</p></div>
+          <div><strong>Updating later</strong><p>Download the newest ZIP and replace your installed Fantasia folder with the new version. Then select <b>Reload Wand</b> from the extension popup.</p></div>
           <a href={wand.downloadUrl ?? "#"}>Get the latest release →</a>
         </aside>
       </section>
