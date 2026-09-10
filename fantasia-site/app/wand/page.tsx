@@ -51,8 +51,8 @@ export default function WandPage() {
           <InstallStep number="3" title="Open Extensions" description={<>Enter <code>chrome://extensions</code> in Chrome’s address bar, then turn on <b>Developer mode</b>.</>}>
             <div className="step-visual chrome-visual"><span>chrome://extensions</span><i>Developer mode&nbsp;&nbsp;●</i></div>
           </InstallStep>
-          <InstallStep number="4" title="Load the dist folder" description={<>Select <b>Load unpacked</b>. Open the extracted Wand folder, select <code>dist</code>, and choose <b>Select Folder</b>.</>}>
-            <div className="step-visual action-visual"><strong>Load unpacked</strong><span>wand-extension-latest › dist</span></div>
+          <InstallStep number="4" title="Load Wand" description={<>Select <b>Load unpacked</b>. Open the extracted Wand folder, select the root folder, and choose <b>Select Folder</b>.</>}>
+            <div className="step-visual action-visual"><strong>Load unpacked</strong><span>wand-extension-latest</span></div>
           </InstallStep>
           <InstallStep number="5" title="Pin and begin" description={<>Open Chrome’s Extensions menu, pin Wand, then refresh any open Canvas or UDOIT tabs.</>}>
             <div className="step-visual pin-visual"><Image src="/products/wand.png" alt="" width={34} height={34} /><strong>Wand</strong><span>📌</span></div>
@@ -62,18 +62,6 @@ export default function WandPage() {
           <div><strong>Updating later</strong><p>Download the newest ZIP, replace the extracted folder, and select <b>Reload Wand</b> from the extension popup.</p></div>
           <a href={wand.downloadUrl ?? "#"}>Get the latest release →</a>
         </aside>
-      </section>
-
-      <section className="live-section">
-        <div className="section-intro">
-          <p className="eyebrow">What you will see</p>
-          <h2>Wand stays with the review.</h2>
-          <p>The red toolbar appears at the bottom of supported Canvas and UDOIT pages. It changes its guidance and available actions to match the active review item.</p>
-        </div>
-        <figure className="app-screenshot">
-          <Image src="/screenshots/wand-udoit.png" alt="UDOIT in Canvas with the red Wand toolbar visible across the bottom of the review screen" width={1400} height={848} />
-          <figcaption>Wand on the UDOIT dashboard in Rafael’s test course.</figcaption>
-        </figure>
       </section>
 
       <section className="content-section" id="capabilities">
