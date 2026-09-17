@@ -44,7 +44,7 @@ function createWindow() {
     minHeight: 480,
     title: `Magic v${APP_VERSION}`,
     icon: path.join(__dirname, "..", "icons", "256.png"),
-    backgroundColor: "#0f1117",
+    backgroundColor: "#f5f5f5",
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),

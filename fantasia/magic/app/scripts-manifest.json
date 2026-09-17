@@ -37,5 +37,125 @@
       { "id": "build",     "label": "Building student worksheets",     "confirm": false },
       { "id": "save",      "label": "Saving output workbook",          "confirm": false }
     ]
+  },
+  {
+    "id": "docx_remediation",
+    "name": "Word Accessibility",
+    "description": "Copies Word files to your output folder, then applies the recovered accessibility workflow.",
+    "scriptFile": "remediate_docx.py",
+    "inputs": [
+      {
+        "id": "input_folder",
+        "label": "Source Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder containing .doc, .docm, or .docx files"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "output_folder",
+        "label": "Output Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder where Magic copies and remediates the files"
+      }
+    ],
+    "steps": [
+      { "id": "scan", "label": "Scanning Word files", "confirm": true },
+      { "id": "copy", "label": "Copying files to output", "confirm": false },
+      { "id": "remediate", "label": "Applying Word remediation", "confirm": false },
+      { "id": "save", "label": "Saving remediated files", "confirm": false }
+    ]
+  },
+  {
+    "id": "pdf_remediation",
+    "name": "PDF Accessibility",
+    "description": "Copies PDFs to your output folder, then runs the recovered local Adobe Acrobat accessibility workflow.",
+    "scriptFile": "remediate_pdf.py",
+    "inputs": [
+      {
+        "id": "input_folder",
+        "label": "Source Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder containing PDF files"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "output_folder",
+        "label": "Output Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder where Magic copies and remediates the files"
+      }
+    ],
+    "steps": [
+      { "id": "scan", "label": "Scanning PDF files", "confirm": true },
+      { "id": "copy", "label": "Copying files to output", "confirm": false },
+      { "id": "remediate", "label": "Running Acrobat remediation", "confirm": false },
+      { "id": "save", "label": "Saving remediated files", "confirm": false }
+    ]
+  },
+  {
+    "id": "pptx_remediation",
+    "name": "PowerPoint Accessibility",
+    "description": "Copies PowerPoint files to your output folder, then applies the recovered accessibility workflow.",
+    "scriptFile": "remediate_pptx.py",
+    "inputs": [
+      {
+        "id": "input_folder",
+        "label": "Source Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder containing .ppt, .pptm, or .pptx files"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "output_folder",
+        "label": "Output Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder where Magic copies and remediates the files"
+      }
+    ],
+    "steps": [
+      { "id": "scan", "label": "Scanning PowerPoint files", "confirm": true },
+      { "id": "copy", "label": "Copying files to output", "confirm": false },
+      { "id": "remediate", "label": "Applying PowerPoint remediation", "confirm": false },
+      { "id": "save", "label": "Saving remediated files", "confirm": false }
+    ]
+  },
+  {
+    "id": "xlsx_remediation",
+    "name": "Excel Workbook Conversion",
+    "description": "Copies Excel files to your output folder and runs the recovered legacy workbook conversion workflow.",
+    "scriptFile": "remediate_xlsx.py",
+    "inputs": [
+      {
+        "id": "input_folder",
+        "label": "Source Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder containing .xls, .xlsb, .xlsm, or .xlsx files"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "output_folder",
+        "label": "Output Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder where Magic copies and converts the files"
+      }
+    ],
+    "steps": [
+      { "id": "scan", "label": "Scanning Excel files", "confirm": true },
+      { "id": "copy", "label": "Copying files to output", "confirm": false },
+      { "id": "remediate", "label": "Converting legacy workbooks", "confirm": false },
+      { "id": "save", "label": "Saving output workbooks", "confirm": false }
+    ]
   }
 ]

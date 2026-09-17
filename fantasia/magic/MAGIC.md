@@ -7,6 +7,7 @@ Magic is the Project Fantasia Windows desktop app for running local Eccles Schoo
 Run these from `fantasia/magic`:
 
 ```bash
+python -m pip install -r scripts/requirements.txt
 npm install
 npm start
 npm run build
@@ -21,6 +22,21 @@ npm run package
 - `app/renderer` contains the desktop UI.
 - `app/scripts-manifest.json` registers the automations shown in Magic.
 - `scripts` contains the bundled automation implementations.
+
+## Accessibility Workflows
+
+Magic includes recovered local workflows for Word, PDF, PowerPoint, and Excel.
+Each workflow asks for a source folder and an output folder. Magic copies the
+supported files into the output folder before remediation, leaving the source
+folder unchanged.
+
+- Word handles `.doc`, `.docm`, and `.docx` files.
+- PDF uses local Adobe Acrobat automation and requires Adobe Acrobat Pro.
+- PowerPoint handles `.ppt`, `.pptm`, and `.pptx` files. Converting legacy
+  `.ppt` files requires desktop Microsoft PowerPoint.
+- Excel preserves the legacy workflow: it converts `.xls` and `.xlsb` files
+  to `.xlsx`; modern workbook files are copied to the output folder. Converting
+  legacy files requires desktop Microsoft Excel.
 
 ## Bundled Python
 
