@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("magic", {
     ipcRenderer.invoke("run-script", { runId, scriptFile, args }),
 
   abortScript:    (runId) => ipcRenderer.send("script-abort",    { runId }),
+  stopAfterCurrent: (runId) => ipcRenderer.send("script-stop-after-current", { runId }),
   continueScript: (runId) => ipcRenderer.send("script-continue", { runId }),
 
   onScriptEvent: (callback) => {

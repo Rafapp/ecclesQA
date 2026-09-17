@@ -42,6 +42,7 @@
     "id": "docx_remediation",
     "name": "Word Accessibility",
     "description": "Copies Word files to your output folder, then applies the recovered accessibility workflow.",
+    "supportsStopAfterCurrent": true,
     "scriptFile": "remediate_docx.py",
     "inputs": [
       {
@@ -72,6 +73,7 @@
     "id": "pdf_remediation",
     "name": "PDF Accessibility",
     "description": "Copies PDFs to your output folder, then runs the recovered local Adobe Acrobat accessibility workflow.",
+    "supportsStopAfterCurrent": true,
     "scriptFile": "remediate_pdf.py",
     "inputs": [
       {
@@ -102,6 +104,7 @@
     "id": "pptx_remediation",
     "name": "PowerPoint Accessibility",
     "description": "Copies PowerPoint files to your output folder, then applies the recovered accessibility workflow.",
+    "supportsStopAfterCurrent": true,
     "scriptFile": "remediate_pptx.py",
     "inputs": [
       {
@@ -132,6 +135,7 @@
     "id": "xlsx_remediation",
     "name": "Excel Workbook Conversion",
     "description": "Copies Excel files to your output folder and runs the recovered legacy workbook conversion workflow.",
+    "supportsStopAfterCurrent": true,
     "scriptFile": "remediate_xlsx.py",
     "inputs": [
       {

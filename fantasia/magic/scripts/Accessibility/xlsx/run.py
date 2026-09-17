@@ -105,6 +105,9 @@ def main(argv: list[str] | None = None) -> int:
     failed = 0
     try:
         for path in to_convert:
+            if manifest.is_done(path):
+                print(f"[done] Skipping {path.name}")
+                continue
             try:
                 process_workbook(path, excel, manifest)
             except Exception as exc:

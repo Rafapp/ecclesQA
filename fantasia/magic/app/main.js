@@ -102,8 +102,17 @@ ipcMain.handle("run-script", (event, { runId, scriptFile, args }) => {
     const scriptPath = path.join(resolveScriptsDir(), scriptFile);
     const cwd        = resolveScriptsDir();
 
-    const proc = spawn(python, [scriptPath, ...args], { cwd, stdio: ["pipe", "pipe", "pipe"] });
-    activeProcs.set(runId, proc);
+    const controlDir = path.join(app.getPath("userData"), "run-controls");
+    const stopFilePath = path.join(controlDir, `${runId}.stop`);
+    fs.mkdirSync(controlDir, { recursive: true });
+    if (fs.existsSync(stopFilePath)) fs.unlinkSync(stopFilePath);
+
+    const proc = spawn(python, [scriptPath, ...args], {
+      cwd,
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { ...process.env, MAGIC_STOP_FILE: stopFilePath },
+    });
+    activeProcs.set(runId, { proc, stopFilePath });
 
     let buf = "";
 
@@ -132,12 +141,14 @@ ipcMain.handle("run-script", (event, { runId, scriptFile, args }) => {
 
     proc.on("close", (code) => {
       activeProcs.delete(runId);
+      if (fs.existsSync(stopFilePath)) fs.unlinkSync(stopFilePath);
       event.sender.send("script-event", { type: "process-exit", code, runId });
       resolve({ code });
     });
 
     proc.on("error", (err) => {
       activeProcs.delete(runId);
+      if (fs.existsSync(stopFilePath)) fs.unlinkSync(stopFilePath);
       event.sender.send("script-event", { type: "run_error", message: err.message, runId });
       resolve({ code: -1 });
     });
@@ -145,18 +156,23 @@ ipcMain.handle("run-script", (event, { runId, scriptFile, args }) => {
 });
 
 ipcMain.on("script-abort", (_event, { runId }) => {
-  const proc = activeProcs.get(runId);
-  if (proc) {
-    try { proc.stdin.write("abort\n"); } catch {}
-    proc.kill("SIGTERM");
+  const run = activeProcs.get(runId);
+  if (run) {
+    try { run.proc.stdin.write("abort\n"); } catch {}
+    run.proc.kill("SIGTERM");
     activeProcs.delete(runId);
   }
 });
 
+ipcMain.on("script-stop-after-current", (_event, { runId }) => {
+  const run = activeProcs.get(runId);
+  if (run) fs.writeFileSync(run.stopFilePath, "stop\n", "utf-8");
+});
+
 ipcMain.on("script-continue", (_event, { runId }) => {
-  const proc = activeProcs.get(runId);
-  if (proc) {
-    try { proc.stdin.write("continue\n"); } catch {}
+  const run = activeProcs.get(runId);
+  if (run) {
+    try { run.proc.stdin.write("continue\n"); } catch {}
   }
 });
 

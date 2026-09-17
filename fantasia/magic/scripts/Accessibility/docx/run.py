@@ -185,6 +185,9 @@ def main() -> int:
 
         try:
             for index, path in enumerate(files, start=1):
+                if manifest.is_done(path):
+                    print(f"[done] Skipping {path.name}")
+                    continue
                 print(f"[{index}/{len(files)}] {path.name}")
                 print("------------------------------------------")
                 try:
@@ -212,6 +215,9 @@ def main() -> int:
             return 1
 
         for index, path in enumerate(files, start=1):
+            if manifest.is_done(path):
+                print(f"[done] Skipping {path.name}")
+                continue
             print(f"[{index}/{len(files)}] {path.name}")
             print("------------------------------------------")
             try:

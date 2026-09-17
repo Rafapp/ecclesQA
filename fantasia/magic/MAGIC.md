@@ -30,6 +30,12 @@ Each workflow asks for a source folder and an output folder. Magic copies the
 supported files into the output folder before remediation, leaving the source
 folder unchanged.
 
+Magic preserves existing files in an output folder on a rerun. The recovered
+workflow manifest and its per-file stage files let the same source/output
+selection resume unfinished work. Use `Stop after current file` to checkpoint
+at the next file boundary, then launch the same workflow with the same output
+folder to requeue the remaining work.
+
 - Word handles `.doc`, `.docm`, and `.docx` files.
 - PDF uses local Adobe Acrobat automation and requires Adobe Acrobat Pro.
 - PowerPoint handles `.ppt`, `.pptm`, and `.pptx` files. Converting legacy

@@ -68,6 +68,10 @@ def run_done(message: str = "Done.") -> None:
     _emit({"type": "run_done", "message": message})
 
 
+def run_stopped(message: str) -> None:
+    _emit({"type": "run_stopped", "message": message})
+
+
 def run_error(message: str) -> None:
     _emit({"type": "run_error", "message": message})
     sys.exit(1)

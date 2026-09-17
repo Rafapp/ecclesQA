@@ -333,6 +333,12 @@ body { display: flex; flex-direction: column; }
   color: var(--text-sec);
 }
 
+.run-progress__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
 .timeline-list {
   list-style: none;
   display: flex;

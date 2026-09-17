@@ -182,6 +182,7 @@ function wireDialogControls() {
   document.getElementById("run-cancel-btn").addEventListener("click", closeRunDialog);
   document.getElementById("run-launch-btn").addEventListener("click", launchScript);
   document.getElementById("run-done-btn").addEventListener("click", closeRunDialog);
+  document.getElementById("stop-after-current-btn").addEventListener("click", requestStopAfterCurrent);
   document.getElementById("open-output-btn").addEventListener("click", () => {
     if (outputFolder) window.magic.openFolder(outputFolder);
   });
@@ -201,6 +202,14 @@ function wireDialogControls() {
     autoApprove = e.target.checked;
     window.magic.setPref("autoApprove", autoApprove);
   });
+}
+
+function requestStopAfterCurrent() {
+  if (!activeRunId) return;
+  const button = document.getElementById("stop-after-current-btn");
+  button.disabled = true;
+  button.textContent = "Stopping after current file";
+  window.magic.stopAfterCurrent(activeRunId);
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -257,6 +266,9 @@ async function launchScript() {
   hide("run-config");
   show("run-timeline");
   buildTimeline(script.steps || []);
+  document.getElementById("stop-after-current-btn").classList.toggle("hidden", !script.supportsStopAfterCurrent);
+  document.getElementById("stop-after-current-btn").disabled = false;
+  document.getElementById("stop-after-current-btn").textContent = "Stop after current file";
 
   // Subscribe to events
   if (unsubscribe) unsubscribe();
@@ -410,6 +422,10 @@ async function handleScriptEvent(payload) {
       finishRun(payload.message || "Completed successfully.", false);
       break;
 
+    case "run_stopped":
+      finishRun(payload.message || "Stopped after the current file.", false);
+      break;
+
     case "progress":
       updateProgress(payload.current, payload.total, payload.item);
       break;
@@ -444,6 +460,7 @@ function finishRun(message, isError) {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   activeRunId = null;
   hide("run-confirm");
+  hide("stop-after-current-btn");
 
   const msg = document.getElementById("run-result-msg");
   msg.textContent = message;

@@ -102,6 +102,9 @@ def main(argv: list[str] | None = None) -> int:
     
     failed = 0
     for path in files:
+        if manifest.is_done(path):
+            print(f"[done] Skipping {path.name}")
+            continue
         try:
             process_presentation(path, manifest)
         except Exception as exc:
