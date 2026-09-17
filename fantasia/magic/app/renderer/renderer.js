@@ -268,6 +268,7 @@ async function launchScript() {
 // ── Timeline builder ──────────────────────────────────────────────────────────
 
 function buildTimeline(steps) {
+  resetProgress();
   const list = document.getElementById("timeline-list");
   list.replaceChildren(
     ...steps.map((step, i) => {
@@ -288,6 +289,26 @@ function buildTimeline(steps) {
       return li;
     })
   );
+}
+
+function resetProgress() {
+  updateProgress(0, 0, "Waiting for the workflow to begin.");
+}
+
+function updateProgress(current, total, item) {
+  const safeTotal = Math.max(0, Number(total) || 0);
+  const safeCurrent = Math.min(Math.max(0, Number(current) || 0), safeTotal || Number.MAX_SAFE_INTEGER);
+  const percentage = safeTotal ? Math.round((safeCurrent / safeTotal) * 100) : 0;
+  const label = document.getElementById("run-progress-label");
+  const count = document.getElementById("run-progress-count");
+  const track = document.querySelector(".run-progress__track");
+
+  label.textContent = safeTotal ? "Current file" : "Preparing workflow";
+  count.textContent = safeTotal ? `${safeCurrent} of ${safeTotal}` : "";
+  document.getElementById("run-progress-fill").style.width = `${percentage}%`;
+  document.getElementById("run-progress-item").textContent = item;
+  track.setAttribute("aria-valuemax", String(safeTotal));
+  track.setAttribute("aria-valuenow", String(safeCurrent));
 }
 
 function getTimelineItem(stepId) {
@@ -387,6 +408,10 @@ async function handleScriptEvent(payload) {
 
     case "run_done":
       finishRun(payload.message || "Completed successfully.", false);
+      break;
+
+    case "progress":
+      updateProgress(payload.current, payload.total, payload.item);
       break;
 
     case "log":

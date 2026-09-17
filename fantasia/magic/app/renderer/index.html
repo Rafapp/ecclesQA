@@ -67,6 +67,16 @@
 
       <!-- Step timeline (shown while running) -->
       <div class="run-timeline hidden" id="run-timeline">
+        <section class="run-progress" aria-live="polite">
+          <div class="run-progress__heading">
+            <span id="run-progress-label">Preparing workflow</span>
+            <span id="run-progress-count">0 of 0</span>
+          </div>
+          <div class="run-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+            <div class="run-progress__fill" id="run-progress-fill"></div>
+          </div>
+          <div class="run-progress__item" id="run-progress-item">Waiting for the workflow to begin.</div>
+        </section>
         <ol class="timeline-list" id="timeline-list"></ol>
       </div>
 

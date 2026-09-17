@@ -51,6 +51,10 @@ def step_info(step_id: str, message: str, items: list[str] | None = None, confir
             sys.exit(0)
 
 
+def progress(current: int, total: int, item: str) -> None:
+    _emit({"type": "progress", "current": current, "total": total, "item": item})
+
+
 def step_done(step_id: str) -> None:
     _emit({"type": "step_done", "id": step_id})
 

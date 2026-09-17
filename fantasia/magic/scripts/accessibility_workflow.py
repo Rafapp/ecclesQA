@@ -100,9 +100,25 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
         errors="replace",
     )
     assert process.stdout is not None
+    current_item = 0
     for line in process.stdout:
         message = line.strip()
         if message:
+            if message.startswith("File: "):
+                item_name = message.removeprefix("File: ").strip()
+                matching_index = next(
+                    (index for index, path in enumerate(files, start=1) if path.name == item_name),
+                    None,
+                )
+                if matching_index is not None:
+                    current_item = matching_index
+                    runner.progress(current_item, len(files), item_name)
+            elif message.startswith("[") and "/" in message and "] " in message:
+                counter, item_name = message[1:].split("] ", maxsplit=1)
+                current_text, total_text = counter.split("/", maxsplit=1)
+                if current_text.isdigit() and total_text.isdigit():
+                    current_item = int(current_text)
+                    runner.progress(current_item, int(total_text), item_name)
             runner.step_info("remediate", message)
     exit_code = process.wait()
     if exit_code:
