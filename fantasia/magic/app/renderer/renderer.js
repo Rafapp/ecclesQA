@@ -340,7 +340,7 @@ function appendStepLog(stepId, message) {
   line.className = "timeline-log-line";
   line.textContent = message;
   log.appendChild(line);
-  line.scrollIntoView({ block: "nearest" });
+  scrollTimelineToLatest();
 }
 
 function appendStepItems(stepId, items) {
@@ -355,7 +355,14 @@ function appendStepItems(stepId, items) {
     ul.appendChild(li);
   });
   log.appendChild(ul);
-  ul.scrollIntoView({ block: "nearest" });
+  scrollTimelineToLatest();
+}
+
+function scrollTimelineToLatest() {
+  const timeline = document.getElementById("run-timeline");
+  requestAnimationFrame(() => {
+    timeline.scrollTop = timeline.scrollHeight;
+  });
 }
 
 // ── Confirm panel ─────────────────────────────────────────────────────────────
@@ -451,6 +458,7 @@ function appendToLastRunningStep(message) {
     line.className = "timeline-log-line";
     line.textContent = message;
     log.appendChild(line);
+    scrollTimelineToLatest();
   }
 }
 

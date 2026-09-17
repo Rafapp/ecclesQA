@@ -288,6 +288,7 @@ body { display: flex; flex-direction: column; }
 
 .run-timeline {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 20px;
 }
