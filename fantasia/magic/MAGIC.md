@@ -1,41 +1,35 @@
-# Magic — developer notes
+# Magic
 
-## Commands (run from `fantasia/magic`)
+Magic is the Project Fantasia Windows desktop app for running local Eccles School automation scripts. It was revived from the `magic-v1.0.0` release and is maintained under `fantasia/magic`.
+
+## Commands
+
+Run these from `fantasia/magic`:
 
 ```bash
 npm install
-npm start          # dev: launches Electron directly
-npm run build      # produces dist/magic-v1.0.0-portable.exe
+npm start
+npm run build
+npm run package
 ```
 
-## Bundling Python (required before `npm run build`)
+`npm start` launches the Electron app. `npm run build` creates a portable Windows executable in `dist`. `npm run package` creates a local release archive.
 
-The packaged `.exe` ships its own Python so users don't need anything installed.
+## Layout
 
-1. Download the **Windows embeddable package** for Python 3.x from https://python.org/downloads/windows/
-   (e.g. `python-3.12.x-embed-amd64.zip`)
-2. Unzip it into `fantasia/magic/python/` — that directory should contain `python.exe`, `python312.zip`, etc.
-3. Run `npm run build`. `electron-builder.yml` copies `python/` into the app's resources automatically.
+- `app/main.js` starts Electron and manages the script runner.
+- `app/renderer` contains the desktop UI.
+- `app/scripts-manifest.json` registers the automations shown in Magic.
+- `scripts` contains the bundled automation implementations.
 
-In dev (`npm start`) the app falls back to the system `python` in PATH.
+## Bundled Python
 
-## Adding a new script
+The packaged application expects a Windows embeddable Python distribution in `fantasia/magic/python` before `npm run build`. In development, Magic uses the system `python` available on `PATH`.
 
-1. Drop the `.py` file into `fantasia/magic/scripts/`.
-2. Add an entry to `fantasia/magic/app/scripts-manifest.json`:
+## Adding An Automation
 
-```json
-{
-  "id": "unique-id",
-  "name": "Display Name",
-  "description": "What this script does, shown in the table.",
-  "scriptFile": "your_script.py"
-}
-```
-
-3. Bump the version in `package.json` and rebuild.
+Place the Python implementation in `scripts`, then add its metadata and input/output contract to `app/scripts-manifest.json`. Keep user-selected paths and output locations explicit in the manifest so Magic can present them before execution.
 
 ## Release
 
-`npm run build` outputs `dist/magic-v<version>-portable.exe`.
-Zip that single file and attach it to the GitHub release — users unzip and double-click.
+Update the package version, validate the desktop app, run `npm run build`, and attach the generated portable executable to a matching GitHub release.

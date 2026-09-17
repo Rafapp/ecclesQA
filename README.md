@@ -4,9 +4,11 @@ Issue inspection and automation tools for the Eccles School of Business Instruct
 
 The shared installation site lives in `fantasia-site`. It presents release status and setup guidance for Wand and Magic and is designed to add Sorcerer without restructuring the site.
 
-## Active Project
+## Active Projects
 
 `fantasia/wand` is the active production project. Wand is a Manifest V3 Chrome extension for UDOIT and Canvas. Its current goal is to help reviewers inspect supported UDOIT findings, open the matching Canvas content, highlight the target, and move through the remediation workflow with clear reviewer control.
+
+`fantasia/magic` is the revived Windows Electron automation launcher. It presents manifest-defined local scripts, lets users choose inputs and output locations, and packages as a portable executable.
 
 Retired experiments and historical versions are kept in Git history, tags, and GitHub releases instead of source-tree snapshots.
 
@@ -35,6 +37,23 @@ The Fantasia installation site provides the same steps in a team-friendly format
 Wand runs only on UDOIT and Canvas pages declared in the extension manifest.
 
 Bug reports and suggestions can be created from the Chrome toolbar popup or the bottom Wand panel. Drafts are saved locally, optionally include recent Wand diagnostics, and can be copied or exported until a central team endpoint is approved.
+
+## Magic
+
+Current package version: `1.0.0`
+
+Magic is a Windows desktop app for running local Eccles School automations. Its current scaffold includes a manifest-driven script launcher and the MHA Competencies workbook automation.
+
+Run Magic development commands from `fantasia/magic`:
+
+```bash
+npm install
+npm start
+npm run build
+npm run package
+```
+
+See [Magic developer notes](fantasia/magic/MAGIC.md) for the bundled Python and release workflow.
 
 ## Development
 
@@ -73,7 +92,7 @@ Do not keep old production versions as copied folders in the repo. Recreate them
 
 ## Reference Archive
 
-`deprecated/Accessibility/tampermonkey/udoit.js` is retained as a reference for earlier UDOIT automation behavior. Older Python modules, analytics output, copied version folders, and retired product experiments are removed from the active tree.
+`deprecated/Accessibility/tampermonkey/udoit.js` is retained as a reference for earlier UDOIT automation behavior. Older Python modules, analytics output, copied version folders, and retired product experiments are managed through repository history.
 
 ## Current Capability Status
 
