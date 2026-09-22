@@ -86,9 +86,16 @@
           </div>
           <div>
             <dt>Item</dt>
-            <dd id="run-progress-item">Not applicable</dd>
+            <dd id="run-progress-item">1 / 1</dd>
+          </div>
+          <div>
+            <dt>Elapsed</dt>
+            <dd id="run-progress-elapsed">0:00</dd>
           </div>
         </dl>
+        <div class="run-task-progress is-indeterminate" id="run-task-progress" role="progressbar" aria-label="Current task progress">
+          <div class="run-task-progress__fill" id="run-task-progress-fill"></div>
+        </div>
         <div class="run-progress__actions">
           <button class="btn btn--secondary" id="stop-after-current-btn" type="button">Stop after current file</button>
         </div>

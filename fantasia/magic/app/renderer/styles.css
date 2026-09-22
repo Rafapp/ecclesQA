@@ -338,9 +338,32 @@ body { display: flex; flex-direction: column; }
 
 .run-progress__details {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px;
+  grid-template-columns: minmax(0, 1fr) 140px 72px;
   gap: 12px;
   margin-top: 10px;
+}
+
+.run-task-progress {
+  height: 4px;
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.run-task-progress__fill {
+  height: 100%;
+  background: var(--warning);
+  transition: width 180ms ease-out;
+}
+
+.run-task-progress.is-indeterminate .run-task-progress__fill {
+  animation: task-progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes task-progress-indeterminate {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(310%); }
 }
 
 .run-progress__details > div {

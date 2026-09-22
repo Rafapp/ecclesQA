@@ -9,6 +9,9 @@ let unsubscribe   = null;   // IPC listener cleanup
 let pendingConfirm = null;  // resolve fn waiting for user Continue/Abort
 let outputFolder  = null;   // resolved output folder for "Open Output Folder"
 const outputWaitTimers = new Map();
+let progressTaskKey = null;
+let progressTaskStartedAt = null;
+let progressElapsedTimer = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -89,6 +92,7 @@ function closeRunDialog() {
   }
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   clearOutputWaitTimers();
+  clearProgressElapsedTimer();
   pendingConfirm = null;
   hide("run-overlay");
 }
@@ -329,18 +333,72 @@ function updateProgress(current, total, fileName, task = "Starting remediation",
   const label = document.getElementById("run-progress-label");
   const count = document.getElementById("run-progress-count");
   const track = document.querySelector(".run-progress__track");
+  const taskTrack = document.getElementById("run-task-progress");
+  const hasItemProgress = Number(itemCurrent) > 0 && Number(itemTotal) > 0;
+  const taskPercentage = hasItemProgress
+    ? Math.min(100, Math.round((Number(itemCurrent) / Number(itemTotal)) * 100))
+    : null;
+  const taskKey = `${safeCurrent}\u0000${fileName}\u0000${task}`;
+
+  if (taskKey !== progressTaskKey) {
+    progressTaskKey = taskKey;
+    progressTaskStartedAt = Date.now();
+    startProgressElapsedTimer();
+  }
 
   label.textContent = safeTotal ? `File ${safeCurrent} of ${safeTotal}` : "Preparing workflow";
-  count.textContent = safeTotal ? `${percentage}%` : "";
+  count.textContent = safeTotal ? `${percentage}% overall` : "";
   document.getElementById("run-progress-fill").style.width = `${percentage}%`;
   document.getElementById("run-progress-file").textContent = fileName;
   document.getElementById("run-progress-task").textContent = task;
-  document.getElementById("run-progress-item").textContent = itemCurrent && itemTotal
-    ? `${itemCurrent} of ${itemTotal}`
-    : "Not applicable";
+  document.getElementById("run-progress-item").textContent = hasItemProgress
+    ? `${itemCurrent} / ${itemTotal} (${taskPercentage}%)`
+    : "1 / 1";
+  taskTrack.classList.toggle("is-indeterminate", !hasItemProgress);
+  document.getElementById("run-task-progress-fill").style.width = hasItemProgress
+    ? `${taskPercentage}%`
+    : "35%";
+  if (hasItemProgress) {
+    taskTrack.setAttribute("aria-valuemin", "0");
+    taskTrack.setAttribute("aria-valuemax", "100");
+    taskTrack.setAttribute("aria-valuenow", String(taskPercentage));
+    taskTrack.removeAttribute("aria-valuetext");
+  } else {
+    taskTrack.removeAttribute("aria-valuemin");
+    taskTrack.removeAttribute("aria-valuemax");
+    taskTrack.removeAttribute("aria-valuenow");
+    taskTrack.setAttribute("aria-valuetext", "In progress");
+  }
   track.setAttribute("aria-valuemax", String(safeTotal));
   track.setAttribute("aria-valuenow", String(safeCurrent));
   if (safeTotal) document.title = `${safeCurrent}/${safeTotal} - ${fileName} - Magic`;
+}
+
+function formatElapsed(milliseconds) {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function updateProgressElapsed() {
+  const elapsed = document.getElementById("run-progress-elapsed");
+  if (elapsed && progressTaskStartedAt !== null) {
+    elapsed.textContent = formatElapsed(Date.now() - progressTaskStartedAt);
+  }
+}
+
+function startProgressElapsedTimer() {
+  clearInterval(progressElapsedTimer);
+  updateProgressElapsed();
+  progressElapsedTimer = setInterval(updateProgressElapsed, 1000);
+}
+
+function clearProgressElapsedTimer() {
+  clearInterval(progressElapsedTimer);
+  progressElapsedTimer = null;
+  progressTaskKey = null;
+  progressTaskStartedAt = null;
 }
 
 function getTimelineItem(stepId) {
@@ -536,6 +594,7 @@ function appendToLastRunningStep(message) {
 function finishRun(message, isError) {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   clearOutputWaitTimers();
+  clearProgressElapsedTimer();
   activeRunId = null;
   hide("run-confirm");
   hide("stop-after-current-btn");

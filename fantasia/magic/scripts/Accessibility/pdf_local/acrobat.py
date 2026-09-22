@@ -95,13 +95,23 @@ class AcrobatSession:
         if not self.app.MenuItemExecute("AccCheck:DoCheck"):
             raise AcrobatError("Failed to launch Acrobat accessibility checker.")
 
-        deadline = time.time() + timeout_seconds
+        started_at = time.time()
+        deadline = started_at + timeout_seconds
+        next_heartbeat = started_at + 5
         while time.time() < deadline:
             self._ensure_not_crashed()
             self._maybe_start_checker()
             if report_path.exists() and report_path.stat().st_size > 0:
                 self.close_document()
                 return report_path
+            now = time.time()
+            if now >= next_heartbeat:
+                elapsed = int(now - started_at)
+                print(
+                    f"  --> Acrobat accessibility check is still running ({elapsed}s elapsed).",
+                    flush=True,
+                )
+                next_heartbeat = now + 5
             time.sleep(0.5)
 
         raise AcrobatError(f"Accessibility report was not generated for {path.name}.")
