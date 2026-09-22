@@ -5,6 +5,7 @@ import ctypes
 import os
 import subprocess
 import sys
+import tempfile
 import time
 import winreg
 from collections import deque
@@ -38,14 +39,26 @@ class AcrobatSession:
         self.avdoc = None
 
     def __enter__(self) -> "AcrobatSession":
-        self._set_local_autotagging()
-        if self.clean_start:
-            self._kill_acrobat()
-        pythoncom.CoInitialize()
-        self.app = win32com.client.Dispatch("AcroExch.App")
-        self.app.Show()
-        time.sleep(1)
-        return self
+        watchdog = self._start_acrobat_watchdog(45, "startup")
+        com_initialized = False
+        try:
+            self._set_local_autotagging()
+            if self.clean_start:
+                self._kill_acrobat()
+            pythoncom.CoInitialize()
+            com_initialized = True
+            self.app = win32com.client.Dispatch("AcroExch.App")
+            self.app.Show()
+            time.sleep(1)
+            return self
+        except Exception as exc:
+            self.app = None
+            self.avdoc = None
+            if com_initialized:
+                pythoncom.CoUninitialize()
+            raise AcrobatError(f"Acrobat stopped responding during startup: {exc}") from exc
+        finally:
+            self._cancel_acrobat_watchdog(watchdog)
 
     def __exit__(self, exc_type, exc, tb) -> None:
         try:
@@ -88,33 +101,40 @@ class AcrobatSession:
     def run_accessibility_check(self, path: Path, timeout_seconds: int = 120) -> Path:
         report_path = self._report_path_for(path)
         report_path.unlink(missing_ok=True)
-
-        self.open_document(path)
-        self._ensure_not_crashed()
-        self._spawn_checker_helper()
-        if not self.app.MenuItemExecute("AccCheck:DoCheck"):
-            raise AcrobatError("Failed to launch Acrobat accessibility checker.")
-
-        started_at = time.time()
-        deadline = started_at + timeout_seconds
-        next_heartbeat = started_at + 5
-        while time.time() < deadline:
+        watchdog = self._start_acrobat_watchdog(timeout_seconds + 20, "accessibility check")
+        try:
+            self.open_document(path)
             self._ensure_not_crashed()
-            self._maybe_start_checker()
-            if report_path.exists() and report_path.stat().st_size > 0:
-                self.close_document()
-                return report_path
-            now = time.time()
-            if now >= next_heartbeat:
-                elapsed = int(now - started_at)
-                print(
-                    f"  --> Acrobat accessibility check is still running ({elapsed}s elapsed).",
-                    flush=True,
-                )
-                next_heartbeat = now + 5
-            time.sleep(0.5)
+            self._spawn_checker_helper()
+            if not self.app.MenuItemExecute("AccCheck:DoCheck"):
+                raise AcrobatError("Failed to launch Acrobat accessibility checker.")
 
-        raise AcrobatError(f"Accessibility report was not generated for {path.name}.")
+            started_at = time.time()
+            deadline = started_at + timeout_seconds
+            next_heartbeat = started_at + 5
+            while time.time() < deadline:
+                self._ensure_not_crashed()
+                self._maybe_start_checker()
+                if report_path.exists() and report_path.stat().st_size > 0:
+                    self.close_document()
+                    return report_path
+                now = time.time()
+                if now >= next_heartbeat:
+                    elapsed = int(now - started_at)
+                    print(
+                        f"  --> Acrobat accessibility check is still running ({elapsed}s elapsed).",
+                        flush=True,
+                    )
+                    next_heartbeat = now + 5
+                time.sleep(0.5)
+
+            raise AcrobatError(f"Accessibility report was not generated for {path.name}.")
+        except AcrobatError:
+            raise
+        except Exception as exc:
+            raise AcrobatError(f"Acrobat stopped responding while checking {path.name}: {exc}") from exc
+        finally:
+            self._cancel_acrobat_watchdog(watchdog)
 
     def perform_ocr(self, path: Path) -> int:
         if self.avdoc is None:
@@ -655,6 +675,53 @@ while time.time() < deadline:
             text=True,
         )
         time.sleep(1)
+
+    @staticmethod
+    def _start_acrobat_watchdog(timeout_seconds: int, operation: str) -> Path:
+        handle, token_name = tempfile.mkstemp(prefix="ecclesqa-acrobat-", suffix=".watchdog")
+        os.close(handle)
+        token = Path(token_name)
+        script = r"""
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+token = Path(sys.argv[1])
+deadline = time.time() + int(sys.argv[2])
+while token.exists() and time.time() < deadline:
+    time.sleep(0.25)
+if not token.exists():
+    raise SystemExit(0)
+subprocess.run(
+    ["taskkill", "/IM", "Acrobat.exe", "/T", "/F"],
+    check=False,
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+)
+for _ in range(20):
+    if not token.exists():
+        raise SystemExit(0)
+    time.sleep(0.25)
+subprocess.run(
+    ["taskkill", "/PID", sys.argv[3], "/T", "/F"],
+    check=False,
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+)
+"""
+        print(f"  --> Guarding Acrobat {operation} with a {timeout_seconds}s watchdog.", flush=True)
+        subprocess.Popen(
+            [sys.executable, "-c", script, str(token), str(timeout_seconds), str(os.getpid())],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return token
+
+    @staticmethod
+    def _cancel_acrobat_watchdog(token: Path) -> None:
+        token.unlink(missing_ok=True)
 
     @staticmethod
     def _set_local_autotagging() -> None:
