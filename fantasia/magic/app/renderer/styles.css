@@ -294,11 +294,15 @@ body { display: flex; flex-direction: column; }
 }
 
 .run-progress {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg-raised);
   padding: 12px 14px;
   margin-bottom: 18px;
+  box-shadow: 0 4px 10px rgb(0 0 0 / 8%);
 }
 
 .run-progress__heading {
@@ -330,8 +334,33 @@ body { display: flex; flex-direction: column; }
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-pri);
+}
+
+.run-progress__operation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+  margin-top: 7px;
   font-size: 12px;
   color: var(--text-sec);
+}
+
+.run-progress__pulse {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--warning);
+  animation: status-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 .run-progress__actions {

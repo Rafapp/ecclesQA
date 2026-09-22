@@ -304,10 +304,10 @@ function buildTimeline(steps) {
 }
 
 function resetProgress() {
-  updateProgress(0, 0, "Waiting for the workflow to begin.");
+  updateProgress(0, 0, "Waiting for the workflow to begin.", "Preparing workflow");
 }
 
-function updateProgress(current, total, item) {
+function updateProgress(current, total, item, operation = "Starting remediation") {
   const safeTotal = Math.max(0, Number(total) || 0);
   const safeCurrent = Math.min(Math.max(0, Number(current) || 0), safeTotal || Number.MAX_SAFE_INTEGER);
   const percentage = safeTotal ? Math.round((safeCurrent / safeTotal) * 100) : 0;
@@ -319,8 +319,10 @@ function updateProgress(current, total, item) {
   count.textContent = safeTotal ? `${safeCurrent} of ${safeTotal}` : "";
   document.getElementById("run-progress-fill").style.width = `${percentage}%`;
   document.getElementById("run-progress-item").textContent = item;
+  document.getElementById("run-progress-operation").textContent = operation;
   track.setAttribute("aria-valuemax", String(safeTotal));
   track.setAttribute("aria-valuenow", String(safeCurrent));
+  if (safeTotal) document.title = `${safeCurrent}/${safeTotal} - ${item} - Magic`;
 }
 
 function getTimelineItem(stepId) {
@@ -434,7 +436,7 @@ async function handleScriptEvent(payload) {
       break;
 
     case "progress":
-      updateProgress(payload.current, payload.total, payload.item);
+      updateProgress(payload.current, payload.total, payload.item, payload.status);
       break;
 
     case "log":

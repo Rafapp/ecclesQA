@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -37,6 +38,35 @@ WORKFLOWS = {
         "label": "Excel files",
     },
 }
+
+
+def _activity_status(message: str) -> str | None:
+    clean = message.lstrip("- >").strip()
+    if message.startswith("Loading weights:"):
+        return "Loading image-captioning model weights"
+    if clean.startswith("Alt text missing:"):
+        return "Preparing the image-captioning model"
+    if clean.startswith("Loading BLIP"):
+        return clean
+    prefixes = (
+        "Resuming:",
+        "Preparing ",
+        "Running ",
+        "Applying ",
+        "Updating ",
+        "Generating ",
+        "Saved:",
+        "Before check unavailable:",
+        "After check unavailable:",
+        "Skipped Acrobat remediation",
+        "Title after metadata step:",
+        "OCR triggered",
+        "Acrobat autotagging",
+        "Alt text:",
+    )
+    if clean.startswith(prefixes):
+        return clean
+    return None
 
 
 def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> None:
@@ -113,6 +143,7 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
     )
     assert process.stdout is not None
     current_item = 0
+    current_total = len(files)
     current_name = "the current file"
     stop_file_value = os.environ.get("MAGIC_STOP_FILE")
 
@@ -133,7 +164,17 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
     for line in process.stdout:
         message = line.strip()
         if message:
-            if message.startswith("File: "):
+            counter_match = re.fullmatch(r"\[(\d+)/(\d+)\](?:\s+(.*))?", message)
+            if counter_match:
+                current_item = int(counter_match.group(1))
+                current_total = int(counter_match.group(2))
+                if counter_match.group(3):
+                    current_name = counter_match.group(3)
+                    runner.progress(current_item, current_total, current_name)
+            elif message.startswith("[done] Skipping "):
+                current_name = message.removeprefix("[done] Skipping ").split(" (use --force", maxsplit=1)[0]
+                runner.progress(current_item, current_total, current_name, "Already complete; skipped")
+            elif message.startswith("File: "):
                 if current_item and stop_requested():
                     stop_before_next_file()
                     return
@@ -145,17 +186,10 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
                 if matching_index is not None:
                     current_item = matching_index
                     current_name = item_name
-                    runner.progress(current_item, len(files), item_name)
-            elif message.startswith("[") and "/" in message and "] " in message:
-                if current_item and stop_requested():
-                    stop_before_next_file()
-                    return
-                counter, item_name = message[1:].split("] ", maxsplit=1)
-                current_text, total_text = counter.split("/", maxsplit=1)
-                if current_text.isdigit() and total_text.isdigit():
-                    current_item = int(current_text)
-                    current_name = item_name
-                    runner.progress(current_item, int(total_text), item_name)
+                runner.progress(current_item, current_total, item_name, "Starting remediation")
+            status = _activity_status(message)
+            if status and current_item:
+                runner.progress(current_item, current_total, current_name, status)
             runner.step_info("remediate", message)
     exit_code = process.wait()
     if stop_requested():
