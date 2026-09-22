@@ -84,6 +84,7 @@ def process_pdf(path: Path, manifest: JobManifest, force: bool = False) -> None:
     try:
         # Stage 1: security -> work_path
         if not work_path.exists():
+            print("  --> Preparing a security-safe working copy...", flush=True)
             security.prepare_working_copy(path, work_path, stats)
             if stats.security_removed:
                 print("  --> Removed blank-password / restrictions-only security in a working copy.")
@@ -93,6 +94,7 @@ def process_pdf(path: Path, manifest: JobManifest, force: bool = False) -> None:
         # Skipped entirely when acrobat_path already exists from a previous run.
         if not acrobat_path.exists():
             try:
+                print("  --> Running the initial Acrobat accessibility check...", flush=True)
                 with AcrobatSession() as acrobat:
                     stats.before_report = acrobat.run_accessibility_check(work_path)
                 before = parse_report(stats.before_report)
@@ -133,9 +135,11 @@ def process_pdf(path: Path, manifest: JobManifest, force: bool = False) -> None:
                 with AcrobatSession() as acrobat:
                     acrobat.open_document(acrobat_input_path)
                     if needs_ocr:
+                        print("  --> Applying OCR in Acrobat...", flush=True)
                         wait_seconds = acrobat.perform_ocr(acrobat_input_path)
                         stats.ocr_applied = True
                         print(f"  --> OCR triggered in Acrobat ({wait_seconds}s wait).")
+                    print("  --> Applying Acrobat autotagging...", flush=True)
                     tagged_probe = acrobat.make_accessible_and_wait(
                         acrobat_input_path,
                         acrobat_path,
@@ -151,12 +155,14 @@ def process_pdf(path: Path, manifest: JobManifest, force: bool = False) -> None:
 
         # Stage 3: metadata -> meta_path
         if not meta_path.exists():
+            print("  --> Updating title and document metadata...", flush=True)
             title = metadata.run(acrobat_path, meta_path, stats)
             print(f"  --> Title after metadata step: {title}")
             manifest.mark_stage(path, "metadata")
 
         # Stage 4: alt text -> final_path
         if not final_path.exists():
+            print("  --> Generating and checking figure alternate text...", flush=True)
             alttext_local.run(meta_path, final_path, stats)
             print(
                 "  --> Alt text: "
@@ -173,6 +179,7 @@ def process_pdf(path: Path, manifest: JobManifest, force: bool = False) -> None:
 
         after: AccessibilityReport | None = None
         try:
+            print("  --> Running the final Acrobat accessibility check...", flush=True)
             with AcrobatSession() as acrobat:
                 stats.after_report = acrobat.run_accessibility_check(path)
             after = parse_report(stats.after_report)

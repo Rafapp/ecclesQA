@@ -96,6 +96,7 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
     )
     command = [
         sys.executable,
+        "-u",
         "-m",
         workflow["module"],
         *workflow["arguments"](destination),
