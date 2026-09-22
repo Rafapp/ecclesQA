@@ -326,6 +326,21 @@ function resetProgress() {
   updateProgress(0, 0, "Waiting for the workflow to begin.", 1, 1, "Preparing workflow", 1, 1, "Waiting to begin", false);
 }
 
+function setDeterminateProgress(fillId, percentage) {
+  const fill = document.getElementById(fillId);
+  const remaining = 100 - percentage;
+  fill.style.width = "100%";
+  fill.style.clipPath = `inset(0 ${remaining}% 0 0)`;
+  fill.style.setProperty("--progress-right", `${remaining}%`);
+}
+
+function setIndeterminateProgress(fillId) {
+  const fill = document.getElementById(fillId);
+  fill.style.width = "35%";
+  fill.style.clipPath = "none";
+  fill.style.removeProperty("--progress-right");
+}
+
 function updateProgress(
   fileCurrent,
   fileTotal,
@@ -360,7 +375,7 @@ function updateProgress(
   }
 
   count.textContent = safeFileTotal ? `${safeFileCurrent} / ${safeFileTotal} (${filePercentage}%)` : "Preparing";
-  document.getElementById("run-progress-fill").style.width = `${filePercentage}%`;
+  setDeterminateProgress("run-progress-fill", filePercentage);
   const fileValue = document.getElementById("run-progress-file");
   const taskValue = document.getElementById("run-progress-task");
   const stepValue = document.getElementById("run-progress-step");
@@ -369,7 +384,7 @@ function updateProgress(
   document.getElementById("run-task-count").textContent = `${safeTaskCurrent} / ${safeTaskTotal} (${taskPercentage}%)`;
   taskValue.textContent = taskName;
   taskValue.title = taskName;
-  document.getElementById("run-task-progress-fill").style.width = `${taskPercentage}%`;
+  setDeterminateProgress("run-task-progress-fill", taskPercentage);
   taskTrack.setAttribute("aria-valuemax", String(safeTaskTotal));
   taskTrack.setAttribute("aria-valuenow", String(safeTaskCurrent));
   document.getElementById("run-step-count").textContent = stepDeterminate
@@ -378,9 +393,11 @@ function updateProgress(
   stepValue.textContent = stepName;
   stepValue.title = stepName;
   stepTrack.classList.toggle("is-indeterminate", !stepDeterminate);
-  document.getElementById("run-step-progress-fill").style.width = stepDeterminate
-    ? `${stepPercentage}%`
-    : "35%";
+  if (stepDeterminate) {
+    setDeterminateProgress("run-step-progress-fill", stepPercentage);
+  } else {
+    setIndeterminateProgress("run-step-progress-fill");
+  }
   if (stepDeterminate) {
     stepTrack.setAttribute("aria-valuemin", "0");
     stepTrack.setAttribute("aria-valuemax", String(safeStepTotal));
