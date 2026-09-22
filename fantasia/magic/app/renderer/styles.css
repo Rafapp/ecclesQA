@@ -144,7 +144,8 @@ body { display: flex; flex-direction: column; }
   border: 1px solid var(--border);
   border-radius: 8px;
   width: min(680px, 92vw);
-  max-height: 82vh;
+  height: 82vh;
+  max-height: 720px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 48px rgb(0 0 0 / 25%);
@@ -165,6 +166,8 @@ body { display: flex; flex-direction: column; }
 /* ── Run config (I/O form) ────────────────────────────────────────────────── */
 
 .run-config {
+  flex: 1;
+  min-height: 0;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -287,19 +290,23 @@ body { display: flex; flex-direction: column; }
 /* ── Step timeline ────────────────────────────────────────────────────────── */
 
 .run-timeline {
-  flex: 1;
+  flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
   padding: 20px;
 }
 
 .run-progress {
-  flex-shrink: 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  position: static;
+  z-index: auto;
+  flex: 0 0 auto;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
   background: var(--bg-raised);
-  padding: 12px 14px;
-  margin: 0 20px 16px;
+  padding: 12px 20px 14px;
+  margin: 0;
+  box-shadow: none;
 }
 
 .run-progress__heading {
@@ -320,10 +327,12 @@ body { display: flex; flex-direction: column; }
 }
 
 .run-progress__fill {
+  position: relative;
   width: 0;
   height: 100%;
   background: var(--accent);
   transition: width 180ms ease-out;
+  animation: magic-file-colors 3.2s ease-in-out infinite;
 }
 
 .run-progress__file {
@@ -356,13 +365,46 @@ body { display: flex; flex-direction: column; }
 }
 
 .run-task-progress__fill {
+  position: relative;
   height: 100%;
   background: var(--warning);
   transition: width 180ms ease-out;
+  animation: magic-task-colors 3.2s ease-in-out infinite;
 }
 
 .run-task-progress.is-indeterminate .run-task-progress__fill {
-  animation: task-progress-indeterminate 1.5s ease-in-out infinite;
+  animation:
+    task-progress-indeterminate 1.5s ease-in-out infinite,
+    magic-task-colors 3.2s ease-in-out infinite;
+}
+
+.run-progress__fill::after,
+.run-task-progress__fill::after {
+  content: "✦";
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  color: #ffffff;
+  font-size: 8px;
+  line-height: 1;
+  transform: translateY(-50%);
+  text-shadow: 0 0 4px rgb(255 255 255 / 80%);
+  animation: magic-sparkle 900ms ease-in-out infinite;
+}
+
+@keyframes magic-file-colors {
+  0%, 100% { background-color: #be0000; }
+  50% { background-color: #ffb81d; }
+}
+
+@keyframes magic-task-colors {
+  0%, 100% { background-color: #8a5a00; }
+  50% { background-color: #147a45; }
+}
+
+@keyframes magic-sparkle {
+  0%, 100% { opacity: 0.35; transform: translateY(-50%) scale(0.75) rotate(0deg); }
+  50% { opacity: 1; transform: translateY(-50%) scale(1.15) rotate(45deg); }
 }
 
 @keyframes task-progress-indeterminate {
