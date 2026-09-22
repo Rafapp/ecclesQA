@@ -361,16 +361,22 @@ function updateProgress(
 
   count.textContent = safeFileTotal ? `${safeFileCurrent} / ${safeFileTotal} (${filePercentage}%)` : "Preparing";
   document.getElementById("run-progress-fill").style.width = `${filePercentage}%`;
-  document.getElementById("run-progress-file").textContent = fileName;
+  const fileValue = document.getElementById("run-progress-file");
+  const taskValue = document.getElementById("run-progress-task");
+  const stepValue = document.getElementById("run-progress-step");
+  fileValue.textContent = fileName;
+  fileValue.title = fileName;
   document.getElementById("run-task-count").textContent = `${safeTaskCurrent} / ${safeTaskTotal} (${taskPercentage}%)`;
-  document.getElementById("run-progress-task").textContent = taskName;
+  taskValue.textContent = taskName;
+  taskValue.title = taskName;
   document.getElementById("run-task-progress-fill").style.width = `${taskPercentage}%`;
   taskTrack.setAttribute("aria-valuemax", String(safeTaskTotal));
   taskTrack.setAttribute("aria-valuenow", String(safeTaskCurrent));
   document.getElementById("run-step-count").textContent = stepDeterminate
     ? `${safeStepCurrent} / ${safeStepTotal} (${stepPercentage}%)`
     : `${safeStepCurrent} / ${safeStepTotal} - Working`;
-  document.getElementById("run-progress-step").textContent = stepName;
+  stepValue.textContent = stepName;
+  stepValue.title = stepName;
   stepTrack.classList.toggle("is-indeterminate", !stepDeterminate);
   document.getElementById("run-step-progress-fill").style.width = stepDeterminate
     ? `${stepPercentage}%`

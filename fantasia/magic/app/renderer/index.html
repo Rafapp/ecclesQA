@@ -71,44 +71,30 @@
       </div>
 
       <section class="run-progress hidden" id="run-progress" aria-live="polite">
-        <div class="run-progress__heading">
-          <span>File progress</span>
-          <span id="run-progress-count"></span>
-        </div>
-        <div class="run-progress__track" role="progressbar" aria-label="File progress" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-          <div class="run-progress__fill" id="run-progress-fill"></div>
-        </div>
-        <div class="run-progress__file" id="run-progress-file">Waiting for the workflow to begin.</div>
-        <div class="run-progress__heading run-progress__heading--level">
-          <span>Task</span>
-          <span id="run-task-count">1 / 1</span>
-        </div>
-        <div class="run-progress__current">
-          <span class="run-progress__pulse" aria-hidden="true"></span>
-          <span id="run-progress-task">Preparing workflow</span>
-        </div>
-        <div class="run-task-progress" id="run-task-progress" role="progressbar" aria-label="Task progress" aria-valuemin="0" aria-valuemax="1" aria-valuenow="1">
-          <div class="run-task-progress__fill" id="run-task-progress-fill"></div>
-        </div>
-        <div class="run-progress__heading run-progress__heading--level">
-          <span>Step</span>
-          <span id="run-step-count">1 / 1</span>
-        </div>
-        <dl class="run-progress__details">
-          <div>
-            <dt>Current step</dt>
-            <dd id="run-progress-step">Waiting to begin</dd>
+        <div class="run-progress__row run-progress__row--file">
+          <div class="run-progress__index"><span>File</span><strong id="run-progress-count"></strong></div>
+          <div class="run-progress__value run-progress__file" id="run-progress-file">Waiting for the workflow to begin.</div>
+          <div class="run-progress__track" role="progressbar" aria-label="File progress" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+            <div class="run-progress__fill" id="run-progress-fill"></div>
           </div>
-          <div>
-            <dt>Elapsed</dt>
-            <dd id="run-progress-elapsed">0:00</dd>
-          </div>
-        </dl>
-        <div class="run-step-progress is-indeterminate" id="run-step-progress" role="progressbar" aria-label="Step progress" aria-valuetext="In progress">
-          <div class="run-step-progress__fill" id="run-step-progress-fill"></div>
         </div>
-        <div class="run-progress__actions">
-          <button class="btn btn--secondary" id="stop-after-current-btn" type="button">Stop after current file</button>
+        <div class="run-progress__row run-progress__row--task">
+          <div class="run-progress__index"><span>Task</span><strong id="run-task-count">1 / 1</strong></div>
+          <div class="run-progress__value" id="run-progress-task">Preparing workflow</div>
+          <div class="run-task-progress" id="run-task-progress" role="progressbar" aria-label="Task progress" aria-valuemin="0" aria-valuemax="1" aria-valuenow="1">
+            <div class="run-task-progress__fill" id="run-task-progress-fill"></div>
+          </div>
+        </div>
+        <div class="run-progress__row run-progress__row--step">
+          <div class="run-progress__index"><span>Step</span><strong id="run-step-count">1 / 1</strong></div>
+          <div class="run-progress__value" id="run-progress-step">Waiting to begin</div>
+          <div class="run-progress__elapsed" id="run-progress-elapsed" title="Elapsed time">0:00</div>
+          <div class="run-step-progress is-indeterminate" id="run-step-progress" role="progressbar" aria-label="Step progress" aria-valuetext="In progress">
+            <div class="run-step-progress__fill" id="run-step-progress-fill"></div>
+          </div>
+          <div class="run-progress__actions">
+            <button class="btn btn--secondary" id="stop-after-current-btn" type="button" title="Stop after current file">Stop after file</button>
+          </div>
         </div>
       </section>
 
