@@ -21,6 +21,17 @@ function resolveScriptsDir() {
 // ── Preferences ───────────────────────────────────────────────────────────────
 
 const PREFS_PATH = path.join(app.getPath("userData"), "prefs.json");
+const LOG_PATH = path.join(app.getPath("userData"), "magic.log");
+
+function writeLog(event, details = {}) {
+  try {
+    fs.appendFileSync(
+      LOG_PATH,
+      `${JSON.stringify({ time: new Date().toISOString(), event, ...details })}\n`,
+      "utf-8"
+    );
+  } catch {}
+}
 
 function loadPrefs() {
   try {
@@ -57,6 +68,7 @@ function createWindow() {
 
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
   win.on("close", (event) => {
+    writeLog("window-close-requested", { activeRuns: activeProcs.size });
     if (allowClose || activeProcs.size === 0) return;
     event.preventDefault();
     if (closeInProgress) return;
@@ -69,6 +81,14 @@ function createWindow() {
       win.close();
     }, 250);
   });
+  win.on("closed", () => writeLog("window-closed"));
+  win.webContents.on("render-process-gone", (_event, details) => {
+    writeLog("renderer-process-gone", {
+      reason: details.reason,
+      exitCode: details.exitCode,
+    });
+  });
+  writeLog("window-created", { version: APP_VERSION });
   return win;
 }
 
@@ -136,14 +156,20 @@ function terminateProcessTree(pid) {
   } catch {}
 }
 
+function cleanupRunAcrobat(run) {
+  if (!run.isPdfRemediation) return;
+  for (const pid of listProcessIds("Acrobat.exe")) {
+    if (!run.existingAcrobatPids.has(pid)) {
+      writeLog("acrobat-cleanup", { runId: run.runId, pid });
+      terminateProcessTree(pid);
+    }
+  }
+}
+
 function terminateRun(run) {
   try { run.proc.stdin.write("abort\n"); } catch {}
   terminateProcessTree(run.proc.pid);
-  if (run.isPdfRemediation) {
-    for (const pid of listProcessIds("Acrobat.exe")) {
-      if (!run.existingAcrobatPids.has(pid)) terminateProcessTree(pid);
-    }
-  }
+  cleanupRunAcrobat(run);
 }
 
 ipcMain.handle("run-script", (event, { runId, scriptFile, args }) => {
@@ -164,7 +190,9 @@ ipcMain.handle("run-script", (event, { runId, scriptFile, args }) => {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env, MAGIC_STOP_FILE: stopFilePath },
     });
-    activeProcs.set(runId, { proc, stopFilePath, isPdfRemediation, existingAcrobatPids });
+    const run = { runId, proc, stopFilePath, isPdfRemediation, existingAcrobatPids };
+    activeProcs.set(runId, run);
+    writeLog("run-started", { runId, scriptFile, pid: proc.pid });
 
     let buf = "";
 
@@ -191,17 +219,25 @@ ipcMain.handle("run-script", (event, { runId, scriptFile, args }) => {
       if (msg) event.sender.send("script-event", { type: "log", message: msg, runId });
     });
 
-    proc.on("close", (code) => {
+    proc.on("close", (code, signal) => {
+      cleanupRunAcrobat(run);
       activeProcs.delete(runId);
       if (fs.existsSync(stopFilePath)) fs.unlinkSync(stopFilePath);
-      event.sender.send("script-event", { type: "process-exit", code, runId });
+      writeLog("run-closed", { runId, scriptFile, code, signal });
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("script-event", { type: "process-exit", code, runId });
+      }
       resolve({ code });
     });
 
     proc.on("error", (err) => {
+      cleanupRunAcrobat(run);
       activeProcs.delete(runId);
       if (fs.existsSync(stopFilePath)) fs.unlinkSync(stopFilePath);
-      event.sender.send("script-event", { type: "run_error", message: err.message, runId });
+      writeLog("run-error", { runId, scriptFile, message: err.message });
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("script-event", { type: "run_error", message: err.message, runId });
+      }
       resolve({ code: -1 });
     });
   });
@@ -229,12 +265,27 @@ ipcMain.on("script-continue", (_event, { runId }) => {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  writeLog("app-ready", { version: APP_VERSION, pid: process.pid });
+  createWindow();
+});
 
 app.on("before-quit", () => {
+  writeLog("before-quit", { activeRuns: activeProcs.size });
   for (const run of activeProcs.values()) terminateRun(run);
   activeProcs.clear();
 });
+
+app.on("child-process-gone", (_event, details) => {
+  writeLog("electron-child-process-gone", {
+    type: details.type,
+    reason: details.reason,
+    exitCode: details.exitCode,
+    serviceName: details.serviceName,
+  });
+});
+
+app.on("quit", (_event, exitCode) => writeLog("app-quit", { exitCode }));
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
