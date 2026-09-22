@@ -72,10 +72,10 @@
 
       <section class="run-progress hidden" id="run-progress" aria-live="polite">
         <div class="run-progress__heading">
-          <span id="run-progress-label">Preparing workflow</span>
+          <span>File progress</span>
           <span id="run-progress-count"></span>
         </div>
-        <div class="run-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+        <div class="run-progress__track" role="progressbar" aria-label="File progress" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
           <div class="run-progress__fill" id="run-progress-fill"></div>
         </div>
         <div class="run-progress__file" id="run-progress-file">Waiting for the workflow to begin.</div>
@@ -93,6 +93,10 @@
             <dd id="run-progress-elapsed">0:00</dd>
           </div>
         </dl>
+        <div class="run-progress__heading run-progress__heading--task">
+          <span>Task progress</span>
+          <span id="run-task-progress-count">Working</span>
+        </div>
         <div class="run-task-progress is-indeterminate" id="run-task-progress" role="progressbar" aria-label="Current task progress">
           <div class="run-task-progress__fill" id="run-task-progress-fill"></div>
         </div>

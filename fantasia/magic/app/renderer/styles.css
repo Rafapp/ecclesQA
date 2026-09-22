@@ -344,11 +344,15 @@ body { display: flex; flex-direction: column; }
 }
 
 .run-task-progress {
-  height: 4px;
+  height: 7px;
   margin-top: 9px;
   overflow: hidden;
   border-radius: 2px;
   background: var(--border);
+}
+
+.run-progress__heading--task {
+  margin-top: 11px;
 }
 
 .run-task-progress__fill {

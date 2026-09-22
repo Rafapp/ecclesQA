@@ -330,7 +330,6 @@ function updateProgress(current, total, fileName, task = "Starting remediation",
   const safeTotal = Math.max(0, Number(total) || 0);
   const safeCurrent = Math.min(Math.max(0, Number(current) || 0), safeTotal || Number.MAX_SAFE_INTEGER);
   const percentage = safeTotal ? Math.round((safeCurrent / safeTotal) * 100) : 0;
-  const label = document.getElementById("run-progress-label");
   const count = document.getElementById("run-progress-count");
   const track = document.querySelector(".run-progress__track");
   const taskTrack = document.getElementById("run-task-progress");
@@ -346,14 +345,16 @@ function updateProgress(current, total, fileName, task = "Starting remediation",
     startProgressElapsedTimer();
   }
 
-  label.textContent = safeTotal ? `File ${safeCurrent} of ${safeTotal}` : "Preparing workflow";
-  count.textContent = safeTotal ? `${percentage}% overall` : "";
+  count.textContent = safeTotal ? `${safeCurrent} / ${safeTotal} (${percentage}%)` : "Preparing";
   document.getElementById("run-progress-fill").style.width = `${percentage}%`;
   document.getElementById("run-progress-file").textContent = fileName;
   document.getElementById("run-progress-task").textContent = task;
   document.getElementById("run-progress-item").textContent = hasItemProgress
     ? `${itemCurrent} / ${itemTotal} (${taskPercentage}%)`
     : "1 / 1";
+  document.getElementById("run-task-progress-count").textContent = hasItemProgress
+    ? `${taskPercentage}%`
+    : "Working";
   taskTrack.classList.toggle("is-indeterminate", !hasItemProgress);
   document.getElementById("run-task-progress-fill").style.width = hasItemProgress
     ? `${taskPercentage}%`
