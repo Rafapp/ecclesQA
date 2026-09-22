@@ -37,6 +37,8 @@ function savePrefs(prefs) {
 // ── Window ────────────────────────────────────────────────────────────────────
 
 function createWindow() {
+  let closeInProgress = false;
+  let allowClose = false;
   const win = new BrowserWindow({
     width: 900,
     height: 620,
@@ -54,6 +56,19 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
+  win.on("close", (event) => {
+    if (allowClose || activeProcs.size === 0) return;
+    event.preventDefault();
+    if (closeInProgress) return;
+    closeInProgress = true;
+    win.webContents.send("app-closing");
+    setTimeout(() => {
+      for (const run of activeProcs.values()) terminateRun(run);
+      activeProcs.clear();
+      allowClose = true;
+      win.close();
+    }, 250);
+  });
   return win;
 }
 

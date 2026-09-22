@@ -25,6 +25,12 @@ async function init() {
 
   renderScripts(scripts);
   wireDialogControls();
+  window.magic.onAppClosing(showClosingScreen);
+}
+
+function showClosingScreen() {
+  document.getElementById("closing-overlay").classList.remove("hidden");
+  document.title = "Closing Magic...";
 }
 
 // ── Scripts table ─────────────────────────────────────────────────────────────

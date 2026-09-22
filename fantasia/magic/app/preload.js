@@ -20,4 +20,10 @@ contextBridge.exposeInMainWorld("magic", {
     ipcRenderer.on("script-event", handler);
     return () => ipcRenderer.removeListener("script-event", handler);
   },
+
+  onAppClosing: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on("app-closing", handler);
+    return () => ipcRenderer.removeListener("app-closing", handler);
+  },
 });
