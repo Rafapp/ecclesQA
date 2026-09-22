@@ -18,59 +18,83 @@ WORKFLOWS = {
         "module": "Accessibility.docx",
         "arguments": lambda folder: ["--folder", str(folder)],
         "label": "Word documents",
+        "tasks": ["Alt text", "Title metadata", "Headings", "Table headers"],
     },
     "pdf": {
         "extensions": {".pdf"},
         "module": "Accessibility.pdf_local",
         "arguments": lambda folder: [str(folder)],
         "label": "PDF files",
+        "tasks": [
+            "Prepare document",
+            "Initial accessibility check",
+            "Acrobat remediation",
+            "Document metadata",
+            "Alternate text",
+            "Finalize and verify",
+        ],
     },
     "pptx": {
         "extensions": {".ppt", ".pptm", ".pptx"},
         "module": "Accessibility.pptx",
         "arguments": lambda folder: [str(folder)],
         "label": "PowerPoint files",
+        "tasks": ["Alt text", "Decorative shapes", "Title metadata"],
     },
     "xlsx": {
         "extensions": {".xls", ".xlsb", ".xlsm", ".xlsx"},
         "module": "Accessibility.xlsx",
         "arguments": lambda folder: [str(folder)],
         "label": "Excel files",
+        "tasks": ["Convert legacy workbook"],
     },
 }
 
 
-def _activity_task(message: str) -> str | None:
+def _activity_progress(workflow_id: str, message: str) -> tuple[str, str, int, int, bool] | None:
     clean = message.lstrip("- >").strip()
     if message.startswith("Loading weights:"):
-        return "Load image-captioning model"
+        task = "Alternate text" if workflow_id == "pdf" else "Alt text"
+        return (task, "Load image-captioning model", 1, 1, False)
     lowered = clean.lower()
     if lowered.startswith("resuming:"):
         if "after-check" in lowered:
-            return "Final accessibility check"
+            return ("Finalize and verify", "Run final accessibility check", 2, 2, False)
         if "alt-text" in lowered:
-            return "Generate alt text"
+            return ("Alternate text", "Generate figure captions", 1, 1, False)
         if "metadata" in lowered:
-            return "Update title and metadata"
-        return "Initial accessibility check"
+            return ("Document metadata", "Update title and metadata", 1, 1, False)
+        return ("Initial accessibility check", "Scan document", 1, 1, False)
     if "security-safe working copy" in lowered:
-        return "Prepare security-safe copy"
+        return ("Prepare document", "Create security-safe copy", 1, 1, False)
     if "initial acrobat accessibility check" in lowered or "before check" in lowered:
-        return "Initial accessibility check"
+        return ("Initial accessibility check", "Scan document", 1, 1, False)
     if "ocr" in lowered:
-        return "Apply OCR"
+        return ("Acrobat remediation", "Apply OCR", 1, 2, False)
     if "autotag" in lowered:
-        return "Apply Acrobat autotagging"
-    if "title" in lowered or "document metadata" in lowered:
-        return "Update title and metadata"
-    if "alternate text" in lowered or "alt text" in lowered or "blip" in lowered:
-        return "Generate alt text"
+        return ("Acrobat remediation", "Apply Acrobat autotagging", 2, 2, False)
+    if lowered.startswith("updating title") or lowered.startswith("title after") or "document metadata" in lowered:
+        task = "Document metadata" if workflow_id == "pdf" else "Title metadata"
+        return (task, "Update title and metadata", 1, 1, False)
+    alt_activity = (
+        lowered.startswith("alt text")
+        or lowered.startswith("loading blip")
+        or lowered.startswith("generating and checking figure alternate text")
+        or "need alt text" in lowered
+    )
+    if alt_activity:
+        task = "Alternate text" if workflow_id == "pdf" else "Alt text"
+        step = "Load image-captioning model" if "load" in lowered or "initializ" in lowered else "Generate captions"
+        return (task, step, 1, 1, False)
     if "final acrobat accessibility check" in lowered or "after check" in lowered:
-        return "Final accessibility check"
+        return ("Finalize and verify", "Run final accessibility check", 2, 2, False)
     if clean.startswith("Saved:"):
-        return "Save remediated file"
+        task = "Finalize and verify" if workflow_id == "pdf" else WORKFLOWS[workflow_id]["tasks"][-1]
+        return (task, "Save remediated file", 1, 2 if workflow_id == "pdf" else 1, True)
     if clean.startswith("Skipped Acrobat remediation"):
-        return "Continue without Acrobat changes"
+        return ("Acrobat remediation", "No Acrobat changes needed", 2, 2, True)
+    if workflow_id == "xlsx" and "converting to .xlsx" in lowered:
+        return ("Convert legacy workbook", "Convert workbook", 1, 1, False)
     return None
 
 
@@ -150,9 +174,12 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
     file_current = 0
     file_total = len(files)
     file_name = "the current file"
-    current_task = "Starting remediation"
-    task_item_current = None
-    task_item_total = None
+    tasks = workflow["tasks"]
+    current_task = tasks[0]
+    current_step = "Starting remediation"
+    step_current = 1
+    step_total = 1
+    step_determinate = False
     stop_file_value = os.environ.get("MAGIC_STOP_FILE")
 
     def stop_requested() -> bool:
@@ -171,24 +198,32 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
 
     def send_progress(
         task: str,
-        item_current: int | None = None,
-        item_total: int | None = None,
+        step: str,
+        current: int = 1,
+        total: int = 1,
+        determinate: bool = False,
     ) -> None:
-        nonlocal current_task, task_item_current, task_item_total
-        if task != current_task:
-            task_item_current = None
-            task_item_total = None
+        nonlocal current_task, current_step, step_current, step_total, step_determinate
         current_task = task
-        if item_current is not None and item_total is not None:
-            task_item_current = item_current
-            task_item_total = item_total
+        current_step = step
+        step_current = current
+        step_total = total
+        step_determinate = determinate
+        task_current = next(
+            (index for index, name in enumerate(tasks, start=1) if name == task),
+            1,
+        )
         runner.progress(
             file_current,
             file_total,
             file_name,
+            task_current,
+            len(tasks),
             current_task,
-            task_item_current,
-            task_item_total,
+            step_current,
+            step_total,
+            current_step,
+            step_determinate,
         )
 
     for line in process.stdout:
@@ -206,18 +241,27 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
                 if is_file_counter:
                     file_current = counter_current
                     file_total = counter_total
-                    current_task = "Starting remediation"
-                    task_item_current = None
-                    task_item_total = None
+                    current_task = tasks[0]
+                    current_step = "Starting remediation"
+                    step_current = 1
+                    step_total = 1
+                    step_determinate = False
                     if counter_detail:
                         file_name = counter_detail
-                        send_progress("Starting remediation")
+                        send_progress(tasks[0], "Starting remediation")
                 else:
-                    task = "Generate alt text" if "alt ->" in counter_detail or counter_detail.startswith("(") else counter_detail
-                    send_progress(task, counter_current, counter_total)
+                    module_task = next(
+                        (task for task in tasks if counter_detail.lower().startswith(task.lower())),
+                        None,
+                    )
+                    if module_task:
+                        send_progress(module_task, "Run remediation module")
+                    else:
+                        task = "Alternate text" if workflow_id == "pdf" else "Alt text"
+                        send_progress(task, "Generate captions", counter_current, counter_total, True)
             elif message.startswith("[done] Skipping "):
                 file_name = message.removeprefix("[done] Skipping ").split(" (use --force", maxsplit=1)[0]
-                send_progress("Already complete; skipped")
+                send_progress(tasks[-1], "Already complete; skipped", 1, 1, True)
             elif message.startswith("File: "):
                 if file_current and stop_requested():
                     stop_before_next_file()
@@ -230,17 +274,30 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
                 )
                 if matching_index is not None:
                     file_current = matching_index
-                send_progress("Starting remediation")
+                send_progress(tasks[0], "Starting remediation")
+            module_match = re.fullmatch(r"\[([^]]+)\]", message)
+            if module_match:
+                module_label = module_match.group(1)
+                module_task = next(
+                    (task for task in tasks if module_label.lower().startswith(task.lower())),
+                    None,
+                )
+                if module_task:
+                    send_progress(module_task, "Run remediation module")
             nested_item_match = re.search(r"\((\d+)/(\d+)\)\s+generating", message)
             if nested_item_match and file_current:
                 send_progress(
-                    "Generate alt text",
+                    "Alt text",
+                    "Generate captions",
                     int(nested_item_match.group(1)),
                     int(nested_item_match.group(2)),
+                    True,
                 )
-            task = _activity_task(message)
-            if task and file_current:
-                send_progress(task)
+            activity = None
+            if not counter_match and not module_match and not nested_item_match:
+                activity = _activity_progress(workflow_id, message)
+            if activity and file_current:
+                send_progress(*activity)
             runner.step_info("remediate", message)
     exit_code = process.wait()
     if stop_requested():

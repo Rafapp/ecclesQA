@@ -9,8 +9,8 @@ let unsubscribe   = null;   // IPC listener cleanup
 let pendingConfirm = null;  // resolve fn waiting for user Continue/Abort
 let outputFolder  = null;   // resolved output folder for "Open Output Folder"
 const outputWaitTimers = new Map();
-let progressTaskKey = null;
-let progressTaskStartedAt = null;
+let progressStepKey = null;
+let progressStepStartedAt = null;
 let progressElapsedTimer = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -323,56 +323,72 @@ function buildTimeline(steps) {
 }
 
 function resetProgress() {
-  updateProgress(0, 0, "Waiting for the workflow to begin.", "Preparing workflow", null, null);
+  updateProgress(0, 0, "Waiting for the workflow to begin.", 1, 1, "Preparing workflow", 1, 1, "Waiting to begin", false);
 }
 
-function updateProgress(current, total, fileName, task = "Starting remediation", itemCurrent = null, itemTotal = null) {
-  const safeTotal = Math.max(0, Number(total) || 0);
-  const safeCurrent = Math.min(Math.max(0, Number(current) || 0), safeTotal || Number.MAX_SAFE_INTEGER);
-  const percentage = safeTotal ? Math.round((safeCurrent / safeTotal) * 100) : 0;
+function updateProgress(
+  fileCurrent,
+  fileTotal,
+  fileName,
+  taskCurrent,
+  taskTotal,
+  taskName,
+  stepCurrent,
+  stepTotal,
+  stepName,
+  stepDeterminate
+) {
+  const safeFileTotal = Math.max(0, Number(fileTotal) || 0);
+  const safeFileCurrent = Math.min(Math.max(0, Number(fileCurrent) || 0), safeFileTotal || Number.MAX_SAFE_INTEGER);
+  const filePercentage = safeFileTotal ? Math.round((safeFileCurrent / safeFileTotal) * 100) : 0;
+  const safeTaskTotal = Math.max(1, Number(taskTotal) || 1);
+  const safeTaskCurrent = Math.min(Math.max(1, Number(taskCurrent) || 1), safeTaskTotal);
+  const taskPercentage = Math.round((safeTaskCurrent / safeTaskTotal) * 100);
+  const safeStepTotal = Math.max(1, Number(stepTotal) || 1);
+  const safeStepCurrent = Math.min(Math.max(1, Number(stepCurrent) || 1), safeStepTotal);
+  const stepPercentage = Math.round((safeStepCurrent / safeStepTotal) * 100);
   const count = document.getElementById("run-progress-count");
-  const track = document.querySelector(".run-progress__track");
+  const fileTrack = document.querySelector(".run-progress__track");
   const taskTrack = document.getElementById("run-task-progress");
-  const hasItemProgress = Number(itemCurrent) > 0 && Number(itemTotal) > 0;
-  const taskPercentage = hasItemProgress
-    ? Math.min(100, Math.round((Number(itemCurrent) / Number(itemTotal)) * 100))
-    : null;
-  const taskKey = `${safeCurrent}\u0000${fileName}\u0000${task}`;
+  const stepTrack = document.getElementById("run-step-progress");
+  const stepKey = `${safeFileCurrent}\u0000${fileName}\u0000${taskName}\u0000${stepName}`;
 
-  if (taskKey !== progressTaskKey) {
-    progressTaskKey = taskKey;
-    progressTaskStartedAt = Date.now();
+  if (stepKey !== progressStepKey) {
+    progressStepKey = stepKey;
+    progressStepStartedAt = Date.now();
     startProgressElapsedTimer();
   }
 
-  count.textContent = safeTotal ? `${safeCurrent} / ${safeTotal} (${percentage}%)` : "Preparing";
-  document.getElementById("run-progress-fill").style.width = `${percentage}%`;
+  count.textContent = safeFileTotal ? `${safeFileCurrent} / ${safeFileTotal} (${filePercentage}%)` : "Preparing";
+  document.getElementById("run-progress-fill").style.width = `${filePercentage}%`;
   document.getElementById("run-progress-file").textContent = fileName;
-  document.getElementById("run-progress-task").textContent = task;
-  document.getElementById("run-progress-item").textContent = hasItemProgress
-    ? `${itemCurrent} / ${itemTotal} (${taskPercentage}%)`
-    : "1 / 1";
-  document.getElementById("run-task-progress-count").textContent = hasItemProgress
-    ? `${taskPercentage}%`
-    : "Working";
-  taskTrack.classList.toggle("is-indeterminate", !hasItemProgress);
-  document.getElementById("run-task-progress-fill").style.width = hasItemProgress
-    ? `${taskPercentage}%`
+  document.getElementById("run-task-count").textContent = `${safeTaskCurrent} / ${safeTaskTotal} (${taskPercentage}%)`;
+  document.getElementById("run-progress-task").textContent = taskName;
+  document.getElementById("run-task-progress-fill").style.width = `${taskPercentage}%`;
+  taskTrack.setAttribute("aria-valuemax", String(safeTaskTotal));
+  taskTrack.setAttribute("aria-valuenow", String(safeTaskCurrent));
+  document.getElementById("run-step-count").textContent = stepDeterminate
+    ? `${safeStepCurrent} / ${safeStepTotal} (${stepPercentage}%)`
+    : `${safeStepCurrent} / ${safeStepTotal} - Working`;
+  document.getElementById("run-progress-step").textContent = stepName;
+  stepTrack.classList.toggle("is-indeterminate", !stepDeterminate);
+  document.getElementById("run-step-progress-fill").style.width = stepDeterminate
+    ? `${stepPercentage}%`
     : "35%";
-  if (hasItemProgress) {
-    taskTrack.setAttribute("aria-valuemin", "0");
-    taskTrack.setAttribute("aria-valuemax", "100");
-    taskTrack.setAttribute("aria-valuenow", String(taskPercentage));
-    taskTrack.removeAttribute("aria-valuetext");
+  if (stepDeterminate) {
+    stepTrack.setAttribute("aria-valuemin", "0");
+    stepTrack.setAttribute("aria-valuemax", String(safeStepTotal));
+    stepTrack.setAttribute("aria-valuenow", String(safeStepCurrent));
+    stepTrack.removeAttribute("aria-valuetext");
   } else {
-    taskTrack.removeAttribute("aria-valuemin");
-    taskTrack.removeAttribute("aria-valuemax");
-    taskTrack.removeAttribute("aria-valuenow");
-    taskTrack.setAttribute("aria-valuetext", "In progress");
+    stepTrack.removeAttribute("aria-valuemin");
+    stepTrack.removeAttribute("aria-valuemax");
+    stepTrack.removeAttribute("aria-valuenow");
+    stepTrack.setAttribute("aria-valuetext", "In progress");
   }
-  track.setAttribute("aria-valuemax", String(safeTotal));
-  track.setAttribute("aria-valuenow", String(safeCurrent));
-  if (safeTotal) document.title = `${safeCurrent}/${safeTotal} - ${fileName} - Magic`;
+  fileTrack.setAttribute("aria-valuemax", String(safeFileTotal));
+  fileTrack.setAttribute("aria-valuenow", String(safeFileCurrent));
+  if (safeFileTotal) document.title = `${safeFileCurrent}/${safeFileTotal} - ${fileName} - Magic`;
 }
 
 function formatElapsed(milliseconds) {
@@ -384,8 +400,8 @@ function formatElapsed(milliseconds) {
 
 function updateProgressElapsed() {
   const elapsed = document.getElementById("run-progress-elapsed");
-  if (elapsed && progressTaskStartedAt !== null) {
-    elapsed.textContent = formatElapsed(Date.now() - progressTaskStartedAt);
+  if (elapsed && progressStepStartedAt !== null) {
+    elapsed.textContent = formatElapsed(Date.now() - progressStepStartedAt);
   }
 }
 
@@ -398,8 +414,8 @@ function startProgressElapsedTimer() {
 function clearProgressElapsedTimer() {
   clearInterval(progressElapsedTimer);
   progressElapsedTimer = null;
-  progressTaskKey = null;
-  progressTaskStartedAt = null;
+  progressStepKey = null;
+  progressStepStartedAt = null;
 }
 
 function getTimelineItem(stepId) {
@@ -563,12 +579,16 @@ async function handleScriptEvent(payload) {
 
     case "progress":
       updateProgress(
-        payload.current,
-        payload.total,
+        payload.fileCurrent,
+        payload.fileTotal,
         payload.file,
+        payload.taskCurrent,
+        payload.taskTotal,
         payload.task,
-        payload.itemCurrent,
-        payload.itemTotal
+        payload.stepCurrent,
+        payload.stepTotal,
+        payload.step,
+        payload.stepDeterminate
       );
       break;
 

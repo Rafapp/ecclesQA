@@ -347,24 +347,40 @@ body { display: flex; flex-direction: column; }
 
 .run-progress__details {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px 72px;
+  grid-template-columns: minmax(0, 1fr) 72px;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 4px;
 }
 
-.run-task-progress {
-  height: 7px;
+.run-progress__heading--level {
   margin-top: 9px;
+}
+
+.run-progress__current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sec);
+}
+
+.run-task-progress,
+.run-step-progress {
+  height: 7px;
+  margin-top: 6px;
   overflow: hidden;
   border-radius: 2px;
   background: var(--border);
 }
 
-.run-progress__heading--task {
-  margin-top: 11px;
-}
-
-.run-task-progress__fill {
+.run-task-progress__fill,
+.run-step-progress__fill {
   position: relative;
   height: 100%;
   background: var(--warning);
@@ -372,14 +388,15 @@ body { display: flex; flex-direction: column; }
   animation: magic-task-colors 3.2s ease-in-out infinite;
 }
 
-.run-task-progress.is-indeterminate .run-task-progress__fill {
+.run-step-progress.is-indeterminate .run-step-progress__fill {
   animation:
     task-progress-indeterminate 1.5s ease-in-out infinite,
     magic-task-colors 3.2s ease-in-out infinite;
 }
 
 .run-progress__fill::after,
-.run-task-progress__fill::after {
+.run-task-progress__fill::after,
+.run-step-progress__fill::after {
   content: "✦";
   position: absolute;
   top: 50%;

@@ -52,21 +52,29 @@ def step_info(step_id: str, message: str, items: list[str] | None = None, confir
 
 
 def progress(
-    current: int,
-    total: int,
+    file_current: int,
+    file_total: int,
     file: str,
-    task: str = "Starting remediation",
-    item_current: int | None = None,
-    item_total: int | None = None,
+    task_current: int,
+    task_total: int,
+    task: str,
+    step_current: int,
+    step_total: int,
+    step: str,
+    step_determinate: bool = False,
 ) -> None:
     _emit({
         "type": "progress",
-        "current": current,
-        "total": total,
+        "fileCurrent": file_current,
+        "fileTotal": file_total,
         "file": file,
+        "taskCurrent": task_current,
+        "taskTotal": task_total,
         "task": task,
-        "itemCurrent": item_current,
-        "itemTotal": item_total,
+        "stepCurrent": step_current,
+        "stepTotal": step_total,
+        "step": step,
+        "stepDeterminate": step_determinate,
     })
 
 
