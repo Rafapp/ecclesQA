@@ -55,6 +55,7 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
         for path in source.iterdir()
         if path.is_file()
         and not path.name.startswith("~$")
+        and ".__ecclesqa_" not in path.name.lower()
         and path.suffix.lower() in workflow["extensions"]
     )
     if not files:
