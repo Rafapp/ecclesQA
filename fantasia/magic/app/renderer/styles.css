@@ -498,7 +498,60 @@ body { display: flex; flex-direction: column; }
   margin-top: 4px;
 }
 
-.timeline-log-line { opacity: 0.85; }
+.timeline-log-line {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px;
+  opacity: 0.88;
+}
+
+.timeline-log-time {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.timeline-log-message {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.timeline-stream-status {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.timeline-item[data-state="running"] .timeline-stream-status {
+  display: flex;
+}
+
+.timeline-stream-pulse {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--warning);
+  animation: stream-waiting 1.6s ease-in-out infinite;
+}
+
+.timeline-stream-status.is-receiving {
+  color: var(--success);
+}
+
+.timeline-stream-status.is-receiving .timeline-stream-pulse {
+  background: var(--success);
+  animation: none;
+}
+
+@keyframes stream-waiting {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
 
 .timeline-items-list {
   list-style: none;

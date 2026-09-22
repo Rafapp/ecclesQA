@@ -8,6 +8,7 @@ let autoApprove   = false;
 let unsubscribe   = null;   // IPC listener cleanup
 let pendingConfirm = null;  // resolve fn waiting for user Continue/Abort
 let outputFolder  = null;   // resolved output folder for "Open Output Folder"
+const outputWaitTimers = new Map();
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -87,6 +88,7 @@ function closeRunDialog() {
     activeRunId = null;
   }
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  clearOutputWaitTimers();
   pendingConfirm = null;
   hide("run-overlay");
 }
@@ -289,6 +291,7 @@ async function launchScript() {
 
 function buildTimeline(steps) {
   resetProgress();
+  clearOutputWaitTimers();
   const list = document.getElementById("timeline-list");
   list.replaceChildren(
     ...steps.map((step, i) => {
@@ -305,6 +308,10 @@ function buildTimeline(steps) {
             <span class="step-label-text">${esc(step.label)}</span>
           </div>
           <div class="timeline-log"></div>
+          <div class="timeline-stream-status">
+            <span class="timeline-stream-pulse" aria-hidden="true"></span>
+            <span class="timeline-stream-status-text">Waiting for output...</span>
+          </div>
         </div>`;
       return li;
     })
@@ -343,17 +350,65 @@ function getTimelineItem(stepId) {
 function setStepState(stepId, state) {
   const el = getTimelineItem(stepId);
   if (el) el.dataset.state = state;
+  if (state !== "running") {
+    clearTimeout(outputWaitTimers.get(stepId));
+    outputWaitTimers.delete(stepId);
+  }
+}
+
+function clearOutputWaitTimers() {
+  outputWaitTimers.forEach((timer) => clearTimeout(timer));
+  outputWaitTimers.clear();
+}
+
+function formatLogTime(date) {
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+function markOutputReceived(stepEl, receivedAt) {
+  const stepId = stepEl.dataset.stepId;
+  const status = stepEl.querySelector(".timeline-stream-status");
+  const statusText = stepEl.querySelector(".timeline-stream-status-text");
+  if (!status || !statusText) return;
+
+  clearTimeout(outputWaitTimers.get(stepId));
+  status.classList.add("is-receiving");
+  statusText.textContent = `Output received at ${formatLogTime(receivedAt)}`;
+  outputWaitTimers.set(stepId, setTimeout(() => {
+    status.classList.remove("is-receiving");
+    statusText.textContent = "Waiting for next output...";
+    outputWaitTimers.delete(stepId);
+  }, 1200));
+}
+
+function appendTimelineLogLine(stepEl, message) {
+  const receivedAt = new Date();
+  const log = stepEl.querySelector(".timeline-log");
+  const line = document.createElement("div");
+  const timestamp = document.createElement("time");
+  const content = document.createElement("span");
+
+  line.className = "timeline-log-line";
+  timestamp.className = "timeline-log-time";
+  timestamp.dateTime = receivedAt.toISOString();
+  timestamp.textContent = formatLogTime(receivedAt);
+  content.className = "timeline-log-message";
+  content.textContent = message;
+  line.append(timestamp, content);
+  log.appendChild(line);
+  markOutputReceived(stepEl, receivedAt);
+  scrollTimelineToLatest();
 }
 
 function appendStepLog(stepId, message) {
   const el = getTimelineItem(stepId);
   if (!el) return;
-  const log = el.querySelector(".timeline-log");
-  const line = document.createElement("div");
-  line.className = "timeline-log-line";
-  line.textContent = message;
-  log.appendChild(line);
-  scrollTimelineToLatest();
+  appendTimelineLogLine(el, message);
 }
 
 function appendStepItems(stepId, items) {
@@ -368,6 +423,7 @@ function appendStepItems(stepId, items) {
     ul.appendChild(li);
   });
   log.appendChild(ul);
+  markOutputReceived(el, new Date());
   scrollTimelineToLatest();
 }
 
@@ -472,20 +528,14 @@ async function handleScriptEvent(payload) {
 
 function appendToLastRunningStep(message) {
   const running = document.querySelector('[data-state="running"]');
-  if (running) {
-    const log = running.querySelector(".timeline-log");
-    const line = document.createElement("div");
-    line.className = "timeline-log-line";
-    line.textContent = message;
-    log.appendChild(line);
-    scrollTimelineToLatest();
-  }
+  if (running) appendTimelineLogLine(running, message);
 }
 
 // ── Finish ────────────────────────────────────────────────────────────────────
 
 function finishRun(message, isError) {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  clearOutputWaitTimers();
   activeRunId = null;
   hide("run-confirm");
   hide("stop-after-current-btn");

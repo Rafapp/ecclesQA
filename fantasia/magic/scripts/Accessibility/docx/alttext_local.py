@@ -112,6 +112,12 @@ def _remove_hallucinated_prefix(text: str) -> str:
     Replaces with 'A' or 'An' depending on the next word.
     """
     import re
+    had_leading_arafed = bool(re.match(r"^\s*arafed\b", text, flags=re.IGNORECASE))
+    text = re.sub(r"\barafed\b", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s{2,}", " ", text).strip(" ,;:-")
+    if had_leading_arafed and text:
+        text = text[0].upper() + text[1:]
+
     # Known hallucination patterns from BLIP (captured without the leading 'A')
     known_bad = {"rafed", "named", "signed", "igned", "model"}
     match = re.match(r"^A([a-z]{2,7})\s+(.+)$", text)
