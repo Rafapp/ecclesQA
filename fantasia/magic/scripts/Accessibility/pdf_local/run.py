@@ -27,7 +27,9 @@ def _collect_files(targets: list[Path]) -> list[Path]:
             files.extend(
                 p
                 for p in target.glob(pattern)
-                if p.is_file() and not p.name.startswith("~$")
+                if p.is_file()
+                and not p.name.startswith("~$")
+                and ".__ecclesqa_" not in p.name.lower()
             )
     return sorted({path.resolve() for path in files})
 
