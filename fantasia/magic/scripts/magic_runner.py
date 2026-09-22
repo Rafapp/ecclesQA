@@ -51,8 +51,23 @@ def step_info(step_id: str, message: str, items: list[str] | None = None, confir
             sys.exit(0)
 
 
-def progress(current: int, total: int, item: str, status: str = "Starting remediation") -> None:
-    _emit({"type": "progress", "current": current, "total": total, "item": item, "status": status})
+def progress(
+    current: int,
+    total: int,
+    file: str,
+    task: str = "Starting remediation",
+    item_current: int | None = None,
+    item_total: int | None = None,
+) -> None:
+    _emit({
+        "type": "progress",
+        "current": current,
+        "total": total,
+        "file": file,
+        "task": task,
+        "itemCurrent": item_current,
+        "itemTotal": item_total,
+    })
 
 
 def step_done(step_id: str) -> None:

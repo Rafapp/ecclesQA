@@ -69,6 +69,7 @@ function openRunDialog(script) {
   // Show config, hide timeline/confirm/footer
   show("run-config");
   hide("run-timeline");
+  hide("run-progress");
   hide("run-confirm");
   hide("run-footer");
 
@@ -270,6 +271,7 @@ async function launchScript() {
 
   // Build timeline
   hide("run-config");
+  show("run-progress");
   show("run-timeline");
   buildTimeline(script.steps || []);
   document.getElementById("stop-after-current-btn").classList.toggle("hidden", !script.supportsStopAfterCurrent);
@@ -310,10 +312,10 @@ function buildTimeline(steps) {
 }
 
 function resetProgress() {
-  updateProgress(0, 0, "Waiting for the workflow to begin.", "Preparing workflow");
+  updateProgress(0, 0, "Waiting for the workflow to begin.", "Preparing workflow", null, null);
 }
 
-function updateProgress(current, total, item, operation = "Starting remediation") {
+function updateProgress(current, total, fileName, task = "Starting remediation", itemCurrent = null, itemTotal = null) {
   const safeTotal = Math.max(0, Number(total) || 0);
   const safeCurrent = Math.min(Math.max(0, Number(current) || 0), safeTotal || Number.MAX_SAFE_INTEGER);
   const percentage = safeTotal ? Math.round((safeCurrent / safeTotal) * 100) : 0;
@@ -321,14 +323,17 @@ function updateProgress(current, total, item, operation = "Starting remediation"
   const count = document.getElementById("run-progress-count");
   const track = document.querySelector(".run-progress__track");
 
-  label.textContent = safeTotal ? "Current file" : "Preparing workflow";
-  count.textContent = safeTotal ? `${safeCurrent} of ${safeTotal}` : "";
+  label.textContent = safeTotal ? `File ${safeCurrent} of ${safeTotal}` : "Preparing workflow";
+  count.textContent = safeTotal ? `${percentage}%` : "";
   document.getElementById("run-progress-fill").style.width = `${percentage}%`;
-  document.getElementById("run-progress-item").textContent = item;
-  document.getElementById("run-progress-operation").textContent = operation;
+  document.getElementById("run-progress-file").textContent = fileName;
+  document.getElementById("run-progress-task").textContent = task;
+  document.getElementById("run-progress-item").textContent = itemCurrent && itemTotal
+    ? `${itemCurrent} of ${itemTotal}`
+    : "Not applicable";
   track.setAttribute("aria-valuemax", String(safeTotal));
   track.setAttribute("aria-valuenow", String(safeCurrent));
-  if (safeTotal) document.title = `${safeCurrent}/${safeTotal} - ${item} - Magic`;
+  if (safeTotal) document.title = `${safeCurrent}/${safeTotal} - ${fileName} - Magic`;
 }
 
 function getTimelineItem(stepId) {
@@ -442,7 +447,14 @@ async function handleScriptEvent(payload) {
       break;
 
     case "progress":
-      updateProgress(payload.current, payload.total, payload.item, payload.status);
+      updateProgress(
+        payload.current,
+        payload.total,
+        payload.file,
+        payload.task,
+        payload.itemCurrent,
+        payload.itemTotal
+      );
       break;
 
     case "log":

@@ -40,32 +40,37 @@ WORKFLOWS = {
 }
 
 
-def _activity_status(message: str) -> str | None:
+def _activity_task(message: str) -> str | None:
     clean = message.lstrip("- >").strip()
     if message.startswith("Loading weights:"):
-        return "Loading image-captioning model weights"
-    if clean.startswith("Alt text missing:"):
-        return "Preparing the image-captioning model"
-    if clean.startswith("Loading BLIP"):
-        return clean
-    prefixes = (
-        "Resuming:",
-        "Preparing ",
-        "Running ",
-        "Applying ",
-        "Updating ",
-        "Generating ",
-        "Saved:",
-        "Before check unavailable:",
-        "After check unavailable:",
-        "Skipped Acrobat remediation",
-        "Title after metadata step:",
-        "OCR triggered",
-        "Acrobat autotagging",
-        "Alt text:",
-    )
-    if clean.startswith(prefixes):
-        return clean
+        return "Load image-captioning model"
+    lowered = clean.lower()
+    if lowered.startswith("resuming:"):
+        if "after-check" in lowered:
+            return "Final accessibility check"
+        if "alt-text" in lowered:
+            return "Generate alt text"
+        if "metadata" in lowered:
+            return "Update title and metadata"
+        return "Initial accessibility check"
+    if "security-safe working copy" in lowered:
+        return "Prepare security-safe copy"
+    if "initial acrobat accessibility check" in lowered or "before check" in lowered:
+        return "Initial accessibility check"
+    if "ocr" in lowered:
+        return "Apply OCR"
+    if "autotag" in lowered:
+        return "Apply Acrobat autotagging"
+    if "title" in lowered or "document metadata" in lowered:
+        return "Update title and metadata"
+    if "alternate text" in lowered or "alt text" in lowered or "blip" in lowered:
+        return "Generate alt text"
+    if "final acrobat accessibility check" in lowered or "after check" in lowered:
+        return "Final accessibility check"
+    if clean.startswith("Saved:"):
+        return "Save remediated file"
+    if clean.startswith("Skipped Acrobat remediation"):
+        return "Continue without Acrobat changes"
     return None
 
 
@@ -142,9 +147,12 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
         errors="replace",
     )
     assert process.stdout is not None
-    current_item = 0
-    current_total = len(files)
-    current_name = "the current file"
+    file_current = 0
+    file_total = len(files)
+    file_name = "the current file"
+    current_task = "Starting remediation"
+    task_item_current = None
+    task_item_total = None
     stop_file_value = os.environ.get("MAGIC_STOP_FILE")
 
     def stop_requested() -> bool:
@@ -158,7 +166,29 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
             process.kill()
             process.wait()
         runner.run_stopped(
-            f"Stopped after {current_name}. Launch the same workflow with the same output folder to resume."
+            f"Stopped after {file_name}. Launch the same workflow with the same output folder to resume."
+        )
+
+    def send_progress(
+        task: str,
+        item_current: int | None = None,
+        item_total: int | None = None,
+    ) -> None:
+        nonlocal current_task, task_item_current, task_item_total
+        if task != current_task:
+            task_item_current = None
+            task_item_total = None
+        current_task = task
+        if item_current is not None and item_total is not None:
+            task_item_current = item_current
+            task_item_total = item_total
+        runner.progress(
+            file_current,
+            file_total,
+            file_name,
+            current_task,
+            task_item_current,
+            task_item_total,
         )
 
     for line in process.stdout:
@@ -166,30 +196,51 @@ def run_workflow(workflow_id: str, input_folder: str, output_folder: str) -> Non
         if message:
             counter_match = re.fullmatch(r"\[(\d+)/(\d+)\](?:\s+(.*))?", message)
             if counter_match:
-                current_item = int(counter_match.group(1))
-                current_total = int(counter_match.group(2))
-                if counter_match.group(3):
-                    current_name = counter_match.group(3)
-                    runner.progress(current_item, current_total, current_name)
+                counter_current = int(counter_match.group(1))
+                counter_total = int(counter_match.group(2))
+                counter_detail = counter_match.group(3)
+                is_file_counter = (
+                    not counter_detail
+                    or Path(counter_detail).suffix.lower() in workflow["extensions"]
+                )
+                if is_file_counter:
+                    file_current = counter_current
+                    file_total = counter_total
+                    current_task = "Starting remediation"
+                    task_item_current = None
+                    task_item_total = None
+                    if counter_detail:
+                        file_name = counter_detail
+                        send_progress("Starting remediation")
+                else:
+                    task = "Generate alt text" if "alt ->" in counter_detail or counter_detail.startswith("(") else counter_detail
+                    send_progress(task, counter_current, counter_total)
             elif message.startswith("[done] Skipping "):
-                current_name = message.removeprefix("[done] Skipping ").split(" (use --force", maxsplit=1)[0]
-                runner.progress(current_item, current_total, current_name, "Already complete; skipped")
+                file_name = message.removeprefix("[done] Skipping ").split(" (use --force", maxsplit=1)[0]
+                send_progress("Already complete; skipped")
             elif message.startswith("File: "):
-                if current_item and stop_requested():
+                if file_current and stop_requested():
                     stop_before_next_file()
                     return
                 item_name = message.removeprefix("File: ").strip()
+                file_name = item_name
                 matching_index = next(
                     (index for index, path in enumerate(files, start=1) if path.name == item_name),
                     None,
                 )
                 if matching_index is not None:
-                    current_item = matching_index
-                    current_name = item_name
-                runner.progress(current_item, current_total, item_name, "Starting remediation")
-            status = _activity_status(message)
-            if status and current_item:
-                runner.progress(current_item, current_total, current_name, status)
+                    file_current = matching_index
+                send_progress("Starting remediation")
+            nested_item_match = re.search(r"\((\d+)/(\d+)\)\s+generating", message)
+            if nested_item_match and file_current:
+                send_progress(
+                    "Generate alt text",
+                    int(nested_item_match.group(1)),
+                    int(nested_item_match.group(2)),
+                )
+            task = _activity_task(message)
+            if task and file_current:
+                send_progress(task)
             runner.step_info("remediate", message)
     exit_code = process.wait()
     if stop_requested():

@@ -294,15 +294,12 @@ body { display: flex; flex-direction: column; }
 }
 
 .run-progress {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+  flex-shrink: 0;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg-raised);
   padding: 12px 14px;
-  margin-bottom: 18px;
-  box-shadow: 0 4px 10px rgb(0 0 0 / 8%);
+  margin: 0 20px 16px;
 }
 
 .run-progress__heading {
@@ -329,7 +326,7 @@ body { display: flex; flex-direction: column; }
   transition: width 180ms ease-out;
 }
 
-.run-progress__item {
+.run-progress__file {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -339,12 +336,34 @@ body { display: flex; flex-direction: column; }
   color: var(--text-pri);
 }
 
-.run-progress__operation {
+.run-progress__details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.run-progress__details > div {
+  min-width: 0;
+}
+
+.run-progress__details dt {
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.run-progress__details dd {
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 18px;
-  margin-top: 7px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
   color: var(--text-sec);
 }
