@@ -48,10 +48,13 @@ Run Magic development commands from `fantasia/magic`:
 
 ```bash
 npm install
+npm run build:portable
 npm start
 npm run build
 npm run package
 ```
+
+Double-click `fantasia/magic/launch.cmd` for local testing; it installs missing Node dependencies and starts Magic. `npm run build:portable` (or `npm run build`) produces `dist/magic-v<version>-portable.exe` for use on another Windows device. A bundled Windows Python runtime in `fantasia/magic/python` is required when creating that executable.
 
 See [Magic developer notes](fantasia/magic/MAGIC.md) for the bundled Python and release workflow.
 

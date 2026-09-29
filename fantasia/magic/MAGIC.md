@@ -9,12 +9,13 @@ Run these from `fantasia/magic`:
 ```bash
 python -m pip install -r scripts/requirements.txt
 npm install
+npm run build:portable
 npm start
 npm run build
 npm run package
 ```
 
-`npm start` launches the Electron app. `npm run build` creates a portable Windows executable in `dist`. `npm run package` creates a local release archive.
+Double-click `launch.cmd` to start Magic locally; it runs `npm ci` automatically only when Node dependencies are missing. `npm start` launches the Electron app from a terminal. `npm run build:portable` (also available as `npm run build`) creates `dist/magic-v<version>-portable.exe`, which can be copied to another Windows device. `npm run package` creates a local release archive.
 
 ## Layout
 
@@ -46,7 +47,7 @@ folder to requeue the remaining work.
 
 ## Bundled Python
 
-The packaged application expects a Windows embeddable Python distribution in `fantasia/magic/python` before `npm run build`. In development, Magic uses the system `python` available on `PATH`.
+The packaged application expects a Windows embeddable Python distribution at `fantasia/magic/python/python.exe` before `npm run build:portable`; the build command checks this explicitly. In development, Magic uses the system `python` available on `PATH`.
 
 ## Adding An Automation
 

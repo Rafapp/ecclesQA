@@ -6,7 +6,8 @@
   "private": true,
   "scripts": {
     "start": "set ELECTRON_RUN_AS_NODE=&& electron .",
-    "build": "electron-builder --win portable",
+    "build": "npm run build:portable",
+    "build:portable": "node scripts/build-portable.mjs",
     "package": "node scripts/package.mjs"
   },
   "devDependencies": {
