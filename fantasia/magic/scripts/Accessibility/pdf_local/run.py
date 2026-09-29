@@ -2,7 +2,13 @@
 from __future__ import annotations
 
 import argparse
+import os
+import queue
 import shutil
+import subprocess
+import sys
+import threading
+import time
 from pathlib import Path
 
 from . import alttext_local, metadata, security, structure
@@ -13,6 +19,15 @@ from Accessibility.manifest import JobManifest
 
 DEFAULT_DOWNLOADS = Path.home() / "Downloads"
 SUPPORTED_PATTERNS = ("*.pdf",)
+MAX_FILE_ATTEMPTS = 3
+ATTEMPTS_BEFORE_DEFER = 2
+FILE_ATTEMPT_TIMEOUT_SECONDS = 20 * 60
+ACROBAT_CHECK_STALL_SECONDS = 3 * 60
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, OSError):
+    pass
 
 
 def _collect_files(targets: list[Path]) -> list[Path]:
@@ -269,11 +284,124 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Reprocess files even if the manifest records them as already done.",
     )
+    parser.add_argument(
+        "--single-file",
+        type=Path,
+        help="Internal: remediate one file in an isolated worker process.",
+    )
     return parser.parse_args(argv)
+
+
+def _kill_acrobat_processes() -> None:
+    subprocess.run(
+        ["taskkill", "/IM", "Acrobat.exe", "/T", "/F"],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def _run_single_file(path: Path, force: bool) -> int:
+    manifest = JobManifest.for_folder(path.parent)
+    try:
+        process_pdf(path, manifest, force=force)
+        return 0
+    except Exception as exc:
+        print(f"  FAILED: {exc}", flush=True)
+        return 1
+
+
+def _run_file_attempt(path: Path, force: bool, attempt: int) -> tuple[bool, str]:
+    command = [
+        sys.executable,
+        "-u",
+        "-m",
+        "Accessibility.pdf_local",
+        "--single-file",
+        str(path),
+    ]
+    if force:
+        command.append("--force")
+
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=os.environ.copy(),
+    )
+    assert process.stdout is not None
+    output: queue.Queue[str | None] = queue.Queue()
+
+    def read_output() -> None:
+        for line in process.stdout:
+            output.put(line)
+        output.put(None)
+
+    threading.Thread(target=read_output, daemon=True).start()
+    deadline = time.monotonic() + FILE_ATTEMPT_TIMEOUT_SECONDS
+    last_line = "worker exited without an error message"
+    stream_closed = False
+    check_last_activity: float | None = None
+    while not stream_closed or process.poll() is None:
+        try:
+            line = output.get(timeout=0.5)
+        except queue.Empty:
+            line = ""
+        if line is None:
+            stream_closed = True
+        elif line:
+            print(line, end="", flush=True)
+            last_line = line.strip()
+            if "Running the initial Acrobat accessibility check" in line or "Running the final Acrobat accessibility check" in line:
+                check_last_activity = time.monotonic()
+            elif check_last_activity is not None:
+                check_last_activity = time.monotonic()
+        if process.poll() is not None and stream_closed:
+            break
+        if time.monotonic() >= deadline:
+            print(
+                f"  --> Attempt {attempt} exceeded the {FILE_ATTEMPT_TIMEOUT_SECONDS // 60}-minute limit.",
+                flush=True,
+            )
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            _kill_acrobat_processes()
+            return False, "Acrobat worker timed out"
+        if (
+            check_last_activity is not None
+            and time.monotonic() - check_last_activity >= ACROBAT_CHECK_STALL_SECONDS
+        ):
+            print(
+                f"  --> Acrobat check produced no output for {ACROBAT_CHECK_STALL_SECONDS // 60} minutes.",
+                flush=True,
+            )
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            _kill_acrobat_processes()
+            return False, "Acrobat accessibility check stopped producing progress"
+
+    if process.returncode == 0:
+        return True, ""
+    _kill_acrobat_processes()
+    return False, last_line
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.single_file is not None:
+        return _run_single_file(args.single_file.resolve(), args.force)
+
     files = _collect_files(args.targets)
     if not files:
         print("No PDF files found.")
@@ -288,7 +416,7 @@ def main(argv: list[str] | None = None) -> int:
     # Track which folders have started pdf_local processing
     started_folders: set[Path] = set()
 
-    failures = 0
+    deferred: list[tuple[Path, JobManifest, str]] = []
     for index, path in enumerate(files, start=1):
         folder = path.parent
         if folder not in manifests:
@@ -307,11 +435,40 @@ def main(argv: list[str] | None = None) -> int:
         manifest = manifests[folder]
 
         print(f"\n[{index}/{len(files)}]")
-        try:
-            process_pdf(path, manifest, force=args.force)
-        except Exception as exc:
-            failures += 1
-            print(f"  FAILED: {exc}")
+        if manifest.is_done(path) and not args.force:
+            print(f"  [done] Skipping {path.name} (use --force to reprocess)")
+            continue
+
+        recovered = False
+        error = ""
+        for attempt in range(1, ATTEMPTS_BEFORE_DEFER + 1):
+            print(f"  --> Isolated Acrobat attempt {attempt}/{MAX_FILE_ATTEMPTS}.", flush=True)
+            recovered, error = _run_file_attempt(path, args.force, attempt)
+            if recovered:
+                break
+            manifest.mark_recovery_attempt(path, attempt, error, deferred=False)
+            print("  --> Restarting Acrobat before retrying this file.", flush=True)
+            _kill_acrobat_processes()
+        if not recovered:
+            manifest.mark_recovery_attempt(path, ATTEMPTS_BEFORE_DEFER, error, deferred=True)
+            deferred.append((path, manifest, error))
+            print("  --> Deferred after repeated Acrobat failures; continuing with the queue.", flush=True)
+
+    failures = 0
+    if deferred:
+        print("\n==========================================")
+        print("  Retrying deferred PDF files")
+        print("==========================================")
+    for path, manifest, previous_error in deferred:
+        print(f"\n[final retry] {path.name}")
+        recovered, error = _run_file_attempt(path, args.force, MAX_FILE_ATTEMPTS)
+        if recovered:
+            continue
+        final_error = error or previous_error
+        manifest.mark_failed(path, final_error)
+        failures += 1
+        _kill_acrobat_processes()
+        print(f"  FAILED AFTER {MAX_FILE_ATTEMPTS} ATTEMPTS: {final_error}", flush=True)
 
     print("\n==========================================")
     print(f"  Done - {len(files)} file(s), {failures} failure(s)")

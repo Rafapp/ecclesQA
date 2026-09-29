@@ -37,6 +37,14 @@ selection resume unfinished work. Use `Stop after current file` to checkpoint
 at the next file boundary, then launch the same workflow with the same output
 folder to requeue the remaining work.
 
+PDF work is isolated per file. If Acrobat stops responding, Magic restarts it
+and retries that file twice before deferring it so the rest of the batch can
+continue. Deferred files receive one final retry pass; files that still fail
+are recorded in the output manifest and can be resumed later without rerunning
+completed files. An initial or final Acrobat accessibility check that produces
+no progress output for three minutes is treated as stalled and is restarted;
+the longer per-file ceiling remains available for OCR and autotagging.
+
 - Word handles `.doc`, `.docm`, and `.docx` files.
 - PDF uses local Adobe Acrobat automation and requires Adobe Acrobat Pro.
 - PowerPoint handles `.ppt`, `.pptm`, and `.pptx` files. Converting legacy

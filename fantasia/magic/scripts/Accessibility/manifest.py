@@ -59,11 +59,25 @@ class JobManifest:
         entry = self._data["files"].setdefault(self._key(file), {})
         entry.update(status="done", last_stage="finalize", completed_at=_utcnow())
         entry.pop("error", None)
+        entry.pop("recovery_attempt", None)
+        entry.pop("recovery_state", None)
+        entry.pop("recovery_error", None)
         self._flush()
 
     def mark_failed(self, file: Path, error: str) -> None:
         entry = self._data["files"].setdefault(self._key(file), {})
         entry.update(status="failed", error=str(error)[:500], updated_at=_utcnow())
+        self._flush()
+
+    def mark_recovery_attempt(self, file: Path, attempt: int, error: str, deferred: bool) -> None:
+        entry = self._data["files"].setdefault(self._key(file), {})
+        entry.update(
+            status="in_progress",
+            recovery_attempt=attempt,
+            recovery_state="deferred" if deferred else "retrying",
+            recovery_error=str(error)[:500],
+            updated_at=_utcnow(),
+        )
         self._flush()
 
     def mark_filetype_started(self, filetype: str) -> None:

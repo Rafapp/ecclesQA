@@ -328,17 +328,12 @@ function resetProgress() {
 
 function setDeterminateProgress(fillId, percentage) {
   const fill = document.getElementById(fillId);
-  const remaining = 100 - percentage;
-  fill.style.width = "100%";
-  fill.style.clipPath = `inset(0 ${remaining}% 0 0)`;
-  fill.style.setProperty("--progress-right", `${remaining}%`);
+  fill.style.width = `${percentage}%`;
 }
 
 function setIndeterminateProgress(fillId) {
   const fill = document.getElementById(fillId);
-  fill.style.width = "35%";
-  fill.style.clipPath = "none";
-  fill.style.removeProperty("--progress-right");
+  fill.style.width = "100%";
 }
 
 function updateProgress(

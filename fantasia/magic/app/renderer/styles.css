@@ -367,10 +367,12 @@ body { display: flex; flex-direction: column; }
 .run-task-progress__fill,
 .run-step-progress__fill {
   position: relative;
-  width: 100%;
+  width: 0;
   height: 100%;
-  background: linear-gradient(90deg, #be0000 0%, #ffb81d 50%, #147a45 100%);
-  transition: clip-path 180ms ease-out;
+  overflow: hidden;
+  border-radius: inherit;
+  background: rgb(190 0 0 / 28%);
+  transition: width 180ms ease-out;
 }
 
 .run-progress__file {
@@ -389,37 +391,26 @@ body { display: flex; flex-direction: column; }
 }
 
 .run-step-progress.is-indeterminate .run-step-progress__fill {
-  background: #ffb81d;
-  animation: task-progress-indeterminate 1.5s ease-in-out infinite;
+  background: rgb(190 0 0 / 20%);
 }
 
 .run-progress__fill::after,
 .run-task-progress__fill::after,
 .run-step-progress__fill::after {
-  content: "✦";
+  content: "";
   position: absolute;
-  top: 50%;
-  right: calc(var(--progress-right, 0%) + 4px);
-  color: #ffffff;
-  font-size: 8px;
-  line-height: 1;
-  transform: translateY(-50%);
-  text-shadow: 0 0 4px rgb(255 255 255 / 80%);
-  animation: magic-sparkle 900ms ease-in-out infinite;
+  inset-block: 0;
+  left: -36px;
+  width: clamp(10px, 34%, 36px);
+  border-radius: inherit;
+  background: #be0000;
+  box-shadow: 0 0 6px rgb(190 0 0 / 55%);
+  animation: progress-tracer 1.35s linear infinite;
 }
 
-.run-step-progress.is-indeterminate .run-step-progress__fill::after {
-  right: 4px;
-}
-
-@keyframes magic-sparkle {
-  0%, 100% { opacity: 0.35; transform: translateY(-50%) scale(0.75) rotate(0deg); }
-  50% { opacity: 1; transform: translateY(-50%) scale(1.15) rotate(45deg); }
-}
-
-@keyframes task-progress-indeterminate {
-  0% { transform: translateX(-110%); }
-  100% { transform: translateX(310%); }
+@keyframes progress-tracer {
+  from { left: -36px; }
+  to { left: 100%; }
 }
 
 .run-progress__elapsed {
