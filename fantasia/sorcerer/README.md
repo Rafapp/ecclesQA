@@ -80,7 +80,7 @@ After the team-owned UBox folder is created and visible in Box Drive on the
 server, configure it once with:
 
 ```powershell
-.\sorcerer.cmd set-result-share --data-dir C:\SorcererData --share-dir "C:\Users\Fantasia\Box\Accessibility\Sorcerer Results"
+.\sorcerer.cmd set-result-share --data-dir C:\SorcererData --share-dir "C:\Users\Fantasia\Box\Sorcerer Results"
 ```
 
 Restart Sorcerer after setting the path. Each completed job will then copy its
@@ -102,7 +102,7 @@ Magic client to dispatch a production batch:
 ```powershell
 # The team-created Box Drive folder must exist exactly at this path. Do not
 # create a look-alike local folder or substitute a different Box folder.
-Test-Path -LiteralPath "C:\Users\Fantasia\Box\Accessibility\Sorcerer Results" -PathType Container
+Test-Path -LiteralPath "C:\Users\Fantasia\Box\Sorcerer Results" -PathType Container
 
 # The server health endpoint is intentionally unauthenticated and contains no
 # client or job data. The dashboard is available only from the server itself.
