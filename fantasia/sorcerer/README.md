@@ -93,3 +93,34 @@ was deferred.
 `workflow_runner.py` is intentionally small: Magic's embeddable Python runtime
 uses an isolated import path, so the launcher adds the selected workflow's
 `scripts/` directory before it runs the script.
+
+## Operator readiness checks
+
+Run these checks from the server workstation after sign-in, before asking a
+Magic client to dispatch a production batch:
+
+```powershell
+# The team-created Box Drive folder must exist exactly at this path. Do not
+# create a look-alike local folder or substitute a different Box folder.
+Test-Path -LiteralPath "C:\Users\Fantasia\Box\Accessibility\Sorcerer Results" -PathType Container
+
+# The server health endpoint is intentionally unauthenticated and contains no
+# client or job data. The dashboard is available only from the server itself.
+Invoke-WebRequest http://127.0.0.1:8765/v1/health -UseBasicParsing
+Start-Process http://127.0.0.1:8765/dashboard
+
+# This is a live queue view; use Ctrl+C to stop watching.
+.\sorcerer.cmd status --data-dir C:\SorcererData
+```
+
+If the Box path is unavailable, leave `result_share_dir` pointed at the
+intended path and let completed jobs report that publishing was deferred.
+Magic can still retrieve the result ZIP directly; do not create a substitute
+folder or test production publishing with an invented archive. Once Box Drive
+mounts the team-owned folder, restart Sorcerer and validate the next genuine
+completed job reports `published to UBox`. The server test suite includes a
+safe local publishing check:
+
+```powershell
+..\magic\python\python.exe -m unittest discover -s tests -v
+```
