@@ -84,4 +84,19 @@ Place the Python implementation in `scripts`, then add its metadata and input/ou
 
 ## Release
 
-Update the package version, validate the desktop app, run `npm run build`, and attach the generated portable executable to a matching GitHub release.
+Before creating a release, update the Magic package version and the Magic entry
+in `fantasia-site/content/products.json` together. The catalog must name the
+matching `magic-v<version>` tag and `magic-application-v<version>.zip` asset.
+Run the following from `fantasia/magic`:
+
+```powershell
+npm run release:verify
+npm run package
+```
+
+Inspect the resulting ZIP outside Git, verify that it contains the expected
+`magic-v<version>-portable.exe`, and record its SHA-256 in the release handoff.
+Only then create a new matching GitHub release and attach that exact ZIP. Never
+overwrite a published asset: rollback means directing users to the previous
+signed-off release, not replacing its bytes. Update and deploy the protected
+website only after the release asset is available and its catalog URL matches.
