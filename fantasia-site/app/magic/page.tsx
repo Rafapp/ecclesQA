@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { SiteFooter } from "../../components/SiteFooter";
 import { SiteHeader } from "../../components/SiteHeader";
+import catalog from "../../content/products.json";
 
 export const metadata: Metadata = {
   title: "Magic | Project Fantasia",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function MagicPage() {
+  const magic = catalog.products.find((product) => product.id === "magic")!;
   return (
     <main>
       <SiteHeader active="magic" />
@@ -17,8 +19,19 @@ export default function MagicPage() {
           <p className="eyebrow">Windows application</p>
           <h1>Magic</h1>
           <p className="hero-copy">Run repeatable document workflows on your computer, or send larger batches to the approved Sorcerer server while keeping your source files and output location explicit.</p>
+          <div className="hero-actions"><a className="button button-primary" href={magic.downloadUrl!}>Download Magic {magic.version}</a><a className="button button-secondary" href="#install">Installation and setup</a></div>
+          <p className="release-note">Portable Windows application · Version {magic.version}</p>
         </div>
         <div className="product-art"><span>Local or queued</span><strong>Magic</strong></div>
+      </section>
+      <section className="content-section" id="install">
+        <div className="section-intro compact"><p className="eyebrow">Installation</p><h2>Download, extract, and run</h2></div>
+        <ol className="guide-grid">
+          <li><b>1</b><div><h3>Download the release</h3><p>Download the Magic ZIP, extract it to a folder you can write to, then run the portable executable inside. No separate Python installation is required.</p></div></li>
+          <li><b>2</b><div><h3>Choose explicit folders</h3><p>Select the source and output folders for every run. Magic preserves source files and puts local results only in the output folder you choose.</p></div></li>
+          <li><b>3</b><div><h3>Configure remote access per run</h3><p>For Sorcerer work, enter the approved LAN URL and the token issued to your device. Magic stores the token in its user preferences; never paste it into documents, job metadata, or source code.</p></div></li>
+          <li><b>4</b><div><h3>Recover safely</h3><p>Use the queue panel to refresh, cancel, or requeue only your own remote jobs. If a direct download is interrupted, reopen Magic and use the same selected output folder.</p></div></li>
+        </ol>
       </section>
       <section className="content-section">
         <div className="section-intro compact"><p className="eyebrow">Start here</p><h2>Run a workflow</h2></div>

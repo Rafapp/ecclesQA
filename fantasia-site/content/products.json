@@ -16,12 +16,12 @@
       "id": "magic",
       "name": "Magic",
       "category": "Windows application",
-      "status": "development",
-      "statusLabel": "In development",
-      "version": null,
+      "status": "available",
+      "statusLabel": "Available",
+      "version": "1.0.0",
       "path": "/magic",
       "description": "A Windows application for accessible document review and repeatable team workflows.",
-      "downloadUrl": null
+      "downloadUrl": "https://github.com/Rafapp/ecclesQA/releases/download/magic-v1.0.0/magic-application-v1.0.0.zip"
     },
     {
       "id": "sorcerer",

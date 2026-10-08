@@ -1,0 +1,39 @@
+name: Magic and Sorcerer CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "fantasia/magic/**"
+      - "fantasia/sorcerer/**"
+      - ".github/workflows/magic-sorcerer-ci.yml"
+  pull_request:
+    paths:
+      - "fantasia/magic/**"
+      - "fantasia/sorcerer/**"
+      - ".github/workflows/magic-sorcerer-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: fantasia/magic/package-lock.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: npm ci
+        working-directory: fantasia/magic
+      - run: node --check app/main.js
+        working-directory: fantasia/magic
+      - run: node --check app/renderer/renderer.js
+        working-directory: fantasia/magic
+      - run: python -m unittest discover -s fantasia/sorcerer/tests -v
