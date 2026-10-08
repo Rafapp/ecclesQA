@@ -42,10 +42,20 @@ export default function MagicPage() {
           <li><b>4</b><div><h3>Collect the result</h3><p>Magic shows server-side progress, then downloads and extracts the completed result into the output folder you selected. Copy the visible job ID before contacting support; never include your remote token.</p></div></li>
         </ol>
       </section>
+      <section className="workflow-section" aria-labelledby="workflow-title">
+        <div className="section-intro compact"><p className="eyebrow">What happens next</p><h2 id="workflow-title">One clear path from files to results</h2></div>
+        <ol className="workflow-flow">
+          <li><span className="workflow-step">1</span><div><h3>Magic</h3><p>You choose the source and output folders, then select a workflow.</p></div></li>
+          <li><span className="workflow-arrow" aria-hidden="true">&rarr;</span><span className="workflow-step">2</span><div><h3>Authenticated submission</h3><p>Magic sends the batch to the approved Sorcerer server using your device-specific access token.</p></div></li>
+          <li><span className="workflow-arrow" aria-hidden="true">&rarr;</span><span className="workflow-step">3</span><div><h3>Queue and one active workflow</h3><p>Office and Acrobat automation runs safely one job at a time. Your priority affects order, not concurrent capacity.</p></div></li>
+          <li><span className="workflow-arrow" aria-hidden="true">&rarr;</span><span className="workflow-step">4</span><div><h3>Direct result, optional team publication</h3><p>Magic downloads the result to your chosen output folder. Team-share publication is optional and never replaces that direct result.</p></div></li>
+        </ol>
+      </section>
       <section className="live-section">
         <div className="section-intro"><div><p className="eyebrow">Large batches</p><h2>Send work to Sorcerer</h2></div><p>Sorcerer is for the approved office workstation that runs Office and Acrobat one job at a time. It is best for longer runs or batches of five or more files.</p></div>
         <div className="guide-card"><h3>Before submitting</h3><ul><li>Get the approved server URL and your own client token from the Sorcerer operator.</li><li>In Magic, check <strong>Send to Sorcerer server</strong>, enter the URL and token, and set a priority from 0–100.</li><li>Do not share tokens. Each device receives its own token and only sees its own jobs.</li><li>Keep Magic open until the result downloads, or use the Sorcerer queue panel to monitor, cancel, or requeue your own job.</li></ul></div>
-        <p className="callout">If the server cannot be reached, do not retry repeatedly. Check the queue panel, then contact the Sorcerer operator with the job ID and error message.</p>
+        <div className="troubleshooting" aria-labelledby="troubleshooting-title"><h3 id="troubleshooting-title">Troubleshooting without losing your place</h3><dl><div><dt>Server cannot be reached</dt><dd>Check the approved server address and your office connection. Avoid repeated submissions; use the queue panel and share the visible job ID with the operator.</dd></div><div><dt>Token rejected</dt><dd>Ask the operator to verify the device-specific token. Do not send the token in email, chat, or a support request.</dd></div><div><dt>Job failed or Magic closed</dt><dd>Reopen Magic and use the queue panel to find your job. Terminal jobs can be requeued as a new attempt; completed results remain available for direct download.</dd></div><div><dt>Shared publication is delayed</dt><dd>Your direct result remains the source of truth. A delayed or failed team-share copy does not delete the server result.</dd></div></dl></div>
+        <p className="callout">Need help? Include the copied job ID, workflow name, and safe error summary. Never include a token, source document contents, or a shared-folder link.</p>
       </section>
       <SiteFooter />
     </main>
