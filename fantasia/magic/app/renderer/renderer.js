@@ -80,6 +80,7 @@ function openRunDialog(script) {
   show("run-config");
   hide("run-timeline");
   hide("run-progress");
+  hide("run-remote-job");
   hide("run-confirm");
   hide("run-footer");
 
@@ -425,7 +426,8 @@ async function launchScript() {
         priority: sorcererPrefs.priority,
       });
       sorcererJobId = job.id;
-      appendToLastRunningStep(`Submitted to Sorcerer as ${job.id.slice(0, 8)}. Waiting in queue.`);
+      showRemoteJobId(job.id);
+      appendToLastRunningStep("Submitted to Sorcerer. The full copyable job ID is shown above while the job is active.");
       pollSorcererJob();
     } catch (error) {
       finishRun(`Could not submit to Sorcerer: ${error.message}`, true);
@@ -799,6 +801,21 @@ async function handleScriptEvent(payload) {
 function appendToLastRunningStep(message) {
   const running = document.querySelector('[data-state="running"]');
   if (running) appendTimelineLogLine(running, message);
+}
+
+function showRemoteJobId(jobId) {
+  const panel = document.getElementById("run-remote-job");
+  const button = document.getElementById("run-remote-job-id");
+  button.textContent = jobId;
+  button.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(jobId);
+      document.getElementById("run-remote-job-note").textContent = "Job ID copied. Include it in a support request, never your token.";
+    } catch {
+      document.getElementById("run-remote-job-note").textContent = "Select and copy the job ID manually.";
+    }
+  };
+  show("run-remote-job");
 }
 
 // ── Finish ────────────────────────────────────────────────────────────────────

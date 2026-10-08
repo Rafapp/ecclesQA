@@ -93,6 +93,11 @@
       </div>
 
       <section class="run-progress hidden" id="run-progress" aria-live="polite">
+        <div class="run-remote-job hidden" id="run-remote-job">
+          <span>Remote job ID</span>
+          <button type="button" id="run-remote-job-id" title="Copy job ID"></button>
+          <span id="run-remote-job-note">Copy this ID for support or queue follow-up.</span>
+        </div>
         <div class="run-progress__row run-progress__row--file">
           <div class="run-progress__index"><span>File</span><strong id="run-progress-count"></strong></div>
           <div class="run-progress__value run-progress__file" id="run-progress-file">Waiting for the workflow to begin.</div>

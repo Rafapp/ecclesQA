@@ -324,6 +324,10 @@ body { display: flex; flex-direction: column; }
   margin: 0;
   box-shadow: none;
 }
+.run-remote-job { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 14px; background: #eef5fb; border-bottom: 1px solid #c9d9e7; color: var(--text-sec); font-size: 12px; }
+.run-remote-job > span:first-child { color: var(--text-pri); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 10px; }
+.run-remote-job button { border: 0; padding: 0; background: transparent; color: var(--accent); cursor: pointer; font: 600 12px ui-monospace, SFMono-Regular, Consolas, monospace; text-decoration: underline; }
+.run-remote-job button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 .run-progress__row {
   display: grid;

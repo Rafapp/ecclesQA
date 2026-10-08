@@ -27,6 +27,14 @@ operator. Magic uploads the source folder, shows the server-side workflow
 progress, and downloads the completed output into the selected local output
 folder. The token is stored only in this Windows user's Magic preferences.
 
+After a remote submission, Magic displays the full copyable job ID in the run
+progress view and in the authenticated queue panel. Include that ID, workflow
+name, and visible status when asking an operator for help; never include the
+client token. A cancellation request affects only the authenticated client's
+job and may take effect at the workflow's next safe process boundary. Requeue
+creates the next attempt for a terminal job while preserving the prior completed
+result archive.
+
 The server must be reachable on the office LAN and have the relevant Office or
 Acrobat application installed. See `../sorcerer/README.md` for server setup.
 
