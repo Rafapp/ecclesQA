@@ -35,3 +35,10 @@ the two existing secret values and set `FANTASIA_SECRETS_FILE` to that file.
 both password-gate secret bindings before it receives traffic, polls the live
 login page, and rolls back to the prior healthy Worker version if any
 post-deployment check fails. It never reads or prints secret values.
+
+## Sorcerer operational visibility
+
+The detailed Sorcerer dashboard stays on the server workstation. The boundary
+and a safe future shared-health design are documented in
+[`OPERATIONS.md`](OPERATIONS.md). Do not expose the workstation dashboard or
+its service port through the website.

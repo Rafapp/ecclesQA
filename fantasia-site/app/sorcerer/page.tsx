@@ -34,6 +34,15 @@ export default function SorcererPage() {
           <li><b>4</b><div><h3>Share completed results</h3><p>After the team UBox folder is ready, configure its Box Drive path. Sorcerer copies completed result ZIPs there without blocking Magic&apos;s direct download.</p></div></li>
         </ol>
       </section>
+      <section className="content-section">
+        <div className="section-intro compact"><p className="eyebrow">Visibility boundaries</p><h2>Three views, each with a different purpose</h2><p>These views are intentionally separate. A convenient client queue must not become a way to inspect another client&apos;s work, and a detailed operator console must not become an internet-facing server.</p></div>
+        <div className="guide-grid">
+          <article className="guide-card"><h3>Magic queue panel</h3><p>For the person who submitted work. It shows only jobs owned by that device&apos;s token and supports refresh, copy ID, cancel, and deliberate requeue.</p></article>
+          <article className="guide-card"><h3>Local operator dashboard</h3><p>For the server operator at the workstation. It provides aggregate queue health, telemetry, publishing state, and recent safe job summaries. It is loopback-only.</p></article>
+          <article className="guide-card"><h3>Future shared health view</h3><p>For authorized staff who need only aggregate availability: server online or offline, queue depth, active or idle state, recent throughput, and refresh time. It must never proxy the local console or reveal job details.</p></article>
+          <article className="guide-card"><h3>Support requests</h3><p>Use the job ID, workflow name, and a safe error summary. Do not include a token, source documents, result links, archive names, or server paths.</p></article>
+        </div>
+      </section>
       <section className="live-section">
         <div className="section-intro"><div><p className="eyebrow">Results and observability</p><h2>Share results, not server internals</h2></div><p>Use a team-owned, locally mounted Box Drive folder with the server account as an Editor. Keep input archives and diagnostics on the server; publish completed results only.</p></div>
         <div className="guide-card"><h3>Built-in telemetry first</h3><p>The local dashboard provides practical operations metrics without exporting private job data or requiring a separate monitoring stack. Grafana remains a future option only if an authorized operator needs durable, organization-wide monitoring; it is not required for normal farm operation.</p></div>
