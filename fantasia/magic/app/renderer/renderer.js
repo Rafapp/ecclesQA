@@ -15,6 +15,7 @@ let progressElapsedTimer = null;
 let sorcererJobId = null;
 let sorcererPollTimer = null;
 let sorcererPrefs = { enabled: false, serverUrl: "", token: "", priority: 50 };
+let launchInProgress = false;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ function renderScripts(scripts) {
 // ── Run dialog: open / close ──────────────────────────────────────────────────
 
 function openRunDialog(script) {
+  launchInProgress = false;
   activeScript  = script;
   inputValues   = {};
   outputValues  = {};
@@ -370,12 +372,18 @@ function sanitizeFilename(raw) {
 // ── Script launch ─────────────────────────────────────────────────────────────
 
 async function launchScript() {
+  if (launchInProgress || activeRunId) return;
   const script = activeScript;
   const errors = validateInputs(script);
   if (errors.length) {
     alert("Please fix the following before running:\n\n" + errors.join("\n"));
     return;
   }
+
+  launchInProgress = true;
+  const launchButton = document.getElementById("run-launch-btn");
+  launchButton.disabled = true;
+  launchButton.textContent = "Starting...";
 
   // Build argv: inputs in manifest order, then outputs in manifest order
   // Filename outputs are sanitized
@@ -826,6 +834,10 @@ function finishRun(message, isError) {
   clearProgressElapsedTimer();
   clearTimeout(sorcererPollTimer);
   activeRunId = null;
+  launchInProgress = false;
+  const launchButton = document.getElementById("run-launch-btn");
+  launchButton.disabled = false;
+  launchButton.textContent = "Run";
   hide("run-confirm");
   hide("stop-after-current-btn");
 
