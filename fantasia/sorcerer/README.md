@@ -36,10 +36,12 @@ the queue. Press `Ctrl+C` to stop watching.
 
 On the server workstation, the documented local dashboard refreshes every five
 seconds. It is deliberately loopback-only and does not require a client token.
-It reports aggregate queue depth, active work, average queue wait and runtime,
-completion rate, a seven-day throughput view, workflow breakdown, result
-publishing outcomes, and copyable job IDs. It does not return client names,
-tokens, input paths, archive names, or result paths.
+It reports aggregate queue depth, active work and elapsed time, server uptime,
+average queue wait and runtime, completion rate, a seven-day throughput view,
+workflow timing and success by type, priority distribution, and distinct result
+publishing outcomes (published, share unavailable, write failed, or not
+configured). It does not return client names, tokens, input paths, archive
+names, or result paths.
 
 The built-in dashboard is the supported operational view. Grafana is not a
 runtime dependency: it would require an authorized, separately secured metrics

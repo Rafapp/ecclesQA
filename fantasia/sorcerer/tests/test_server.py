@@ -139,13 +139,20 @@ class SorcererServerTest(unittest.TestCase):
             {"id": "three", "type": "other", "status": "running", "created_at": "2026-10-08T11:40:00+00:00", "started_at": "2026-10-08T11:45:00+00:00", "progress": json.dumps({"message": "Converting"}), "priority": 50},
             {"id": "four", "type": "other", "status": "queued", "created_at": "2026-10-08T11:50:00+00:00"},
         ]
-        metrics = operator_metrics(jobs, now=now)
+        metrics = operator_metrics(jobs, now=now, server_started_at=datetime(2026, 10, 8, 10, 0, tzinfo=timezone.utc))
         self.assertEqual(metrics["counts"], {"queued": 1, "running": 1, "completed": 1, "failed": 1, "cancelled": 0})
         self.assertEqual(metrics["timing"]["average_wait_seconds"], 400)
         self.assertEqual(metrics["timing"]["average_runtime_seconds"], 900)
         self.assertEqual(metrics["timing"]["completion_rate"], 50)
         self.assertEqual(metrics["publishing"]["published"], 1)
+        self.assertEqual(metrics["recent"], {"completed_24h": 1, "completed_7d": 0, "failed_24h": 1, "failed_7d": 0})
+        self.assertEqual(metrics["priority_distribution"], {"low": 0, "standard": 1, "expedited": 0})
+        self.assertEqual(metrics["uptime_seconds"], 7200)
         self.assertEqual(metrics["active"]["stage"], "Converting")
+        self.assertEqual(metrics["active"]["elapsed_seconds"], 900)
+        test_metrics = next(entry for entry in metrics["by_type"] if entry["type"] == "test")
+        self.assertEqual(test_metrics["average_runtime_seconds"], 900)
+        self.assertEqual(test_metrics["completion_rate"], 50)
         self.assertNotIn("input_zip", json.dumps(metrics))
 
     def test_rejects_archive_that_expands_beyond_configured_limit(self):
