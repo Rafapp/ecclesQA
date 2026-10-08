@@ -2,6 +2,9 @@
   "name": "fantasia-site",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-10",
+  "secrets": {
+    "required": ["SITE_PASSWORD", "SESSION_SECRET"]
+  },
   "assets": {
     "directory": "../worker-assets",
     "binding": "ASSETS",

@@ -11,6 +11,8 @@
     "start": "vinext start",
     "export:pages": "node scripts/export-pages.mjs /ecclesQA",
     "export:worker": "node scripts/export-pages.mjs --output worker-assets",
+    "verify:production": "node scripts/verify-production.mjs",
+    "deploy:protected": "node scripts/deploy-protected.mjs",
     "docs:sync": "node scripts/sync-catalog-docs.mjs",
     "docs:check": "node scripts/sync-catalog-docs.mjs --check",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .vinext --ignore-pattern pages-dist"
