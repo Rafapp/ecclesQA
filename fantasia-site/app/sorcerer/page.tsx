@@ -19,7 +19,7 @@ export default function SorcererPage() {
       <section className="content-section">
         <div className="section-intro compact"><p className="eyebrow">Operator checklist</p><h2>Operate the server safely</h2></div>
         <ol className="guide-grid">
-          <li><b>1</b><div><h3>Keep the server session available</h3><p>Stay signed in to the server&apos;s Windows account and run Sorcerer in that interactive Office and Acrobat session. A logon task requires administrator approval; until it is installed, use the documented server launcher after sign-in.</p></div></li>
+          <li><b>1</b><div><h3>Keep the server session available</h3><p>Stay signed in to the server&apos;s Windows account. The production workstation uses an interactive logon task to start Sorcerer; Office and Acrobat still require that interactive desktop session. On another workstation, install and verify the same task before accepting client work.</p></div></li>
           <li><b>2</b><div><h3>Use the local dashboard</h3><p>On the server itself, open <code>http://127.0.0.1:8765/dashboard</code>. It refreshes every five seconds and is intentionally unavailable from the network.</p></div></li>
           <li><b>3</b><div><h3>Manage client access</h3><p>Issue one token per client device, list devices with <code>sorcerer.cmd clients</code>, and revoke retired devices with <code>sorcerer.cmd revoke --name &lt;device&gt;</code>.</p></div></li>
           <li><b>4</b><div><h3>Share completed results</h3><p>After the team UBox folder is ready, configure its Box Drive path. Sorcerer copies completed result ZIPs there without blocking Magic&apos;s direct download.</p></div></li>

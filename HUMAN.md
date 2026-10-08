@@ -9,9 +9,10 @@
 3. Confirm that Adobe Acrobat Pro and any required Office desktop applications
    are installed and licensed in the same interactive Windows session that runs
    Sorcerer.
-4. Sorcerer is currently running on this workstation at port 8765. Run
-   `fantasia\sorcerer\install-logon-task.cmd` to restore it automatically at
-   the server user's next sign-in.
-   - Attempted on 2026-09-29: Windows returned `Access is denied`; an
-     administrator or Task Scheduler policy change is required to create the
-     `Sorcerer Server` logon task.
+4. Sorcerer is currently running on this workstation at port 8765. The
+   `Sorcerer Server` interactive logon task was installed successfully on
+   2026-10-08 for the server user, so it starts after that user signs in.
+   Office and Acrobat still require that interactive desktop session. If the
+   task is removed or this is deployed to another workstation, rerun
+   `fantasia\sorcerer\install-logon-task.cmd` from the intended server user's
+   session and verify it with `schtasks /Query /TN "Sorcerer Server" /FO LIST`.

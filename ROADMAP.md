@@ -71,6 +71,10 @@ track. Wand remains independently maintained.
 - 2026-10-02: Closed cancellation and archive-validation edge cases: a
   cancellation observed during input extraction now prevents workflow launch,
   and unsafe ZIP paths are rejected at submission.
+- 2026-10-08: Completed the production readiness pass: verified the local-only
+  dashboard and LAN health, installed the interactive `Sorcerer Server` logon
+  task, configured and validated atomic UBox result publishing, and added
+  Magic/Sorcerer CI plus release and rollback guidance.
 
 ## What The Data Says
 
