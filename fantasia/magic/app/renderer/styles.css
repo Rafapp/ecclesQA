@@ -66,6 +66,16 @@ body { display: flex; flex-direction: column; }
 /* ── Table ────────────────────────────────────────────────────────────────── */
 
 .table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.sorcerer-overview { margin-top: 28px; }
+.sorcerer-overview__header { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.sorcerer-overview__header .section-heading { margin-bottom: 3px; }
+.sorcerer-overview__header p { color: var(--text-sec); font-size: 12px; }
+.job-status { font-weight: 600; text-transform: capitalize; }
+.job-status--completed { color: var(--success); }
+.job-status--failed, .job-status--cancelled { color: var(--error); }
+.job-status--queued { color: var(--warning); }
+.job-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.job-actions .btn { padding: 5px 9px; font-size: 11px; }
 
 .scripts-table { width: 100%; border-collapse: collapse; }
 
@@ -250,6 +260,10 @@ body { display: flex; flex-direction: column; }
   color: var(--text-dim);
   flex-shrink: 0;
 }
+
+.sorcerer-config { padding: 12px 14px; background: #f7f1ff; border: 1px solid #cbb7e6; border-radius: 6px; }
+.sorcerer-config p { margin: 5px 0 0; color: var(--text-sec); font-size: 12px; }
+.sorcerer-fields { display: grid; grid-template-columns: 1fr 1fr 110px; gap: 8px; margin-top: 10px; }
 
 .run-config__auto {
   display: flex;

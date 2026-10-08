@@ -34,6 +34,18 @@
         </table>
       </div>
     </section>
+
+    <section class="sorcerer-overview" aria-labelledby="sorcerer-heading">
+      <div class="sorcerer-overview__header">
+        <div><h2 class="section-heading" id="sorcerer-heading">Sorcerer server queue</h2><p id="sorcerer-overview-detail">Configure a server in a run dialog to view remote jobs.</p></div>
+        <button class="btn btn--secondary" id="sorcerer-refresh-btn" type="button">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table class="scripts-table" aria-label="Sorcerer jobs"><thead><tr><th>Job</th><th>Status</th><th>Message</th><th></th></tr></thead>
+          <tbody id="sorcerer-jobs-body"><tr class="placeholder-row"><td colspan="4">No server configured.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
   <!-- ── Run dialog overlay ─────────────────────────────────────────────────── -->
@@ -50,6 +62,16 @@
       <div class="run-config" id="run-config">
         <div id="run-inputs"></div>
         <div id="run-outputs"></div>
+
+        <section class="sorcerer-config" id="sorcerer-config">
+          <label class="auto-approve-label"><input type="checkbox" id="sorcerer-chk" /><span class="auto-approve-text">Send to Sorcerer server</span></label>
+          <p>Recommended for batches of 5+ files. Files are sent to the approved office server and returned to the output folder.</p>
+          <div class="sorcerer-fields hidden" id="sorcerer-fields">
+            <input class="io-name-input" id="sorcerer-url" type="url" placeholder="http://server-name:8765" aria-label="Sorcerer server URL" />
+            <input class="io-name-input" id="sorcerer-token" type="password" placeholder="Client access token" aria-label="Sorcerer access token" />
+            <input class="io-name-input" id="sorcerer-priority" type="number" min="0" max="100" value="50" aria-label="Sorcerer priority from 0 to 100" />
+          </div>
+        </section>
 
         <div class="run-config__auto">
           <label class="auto-approve-label">

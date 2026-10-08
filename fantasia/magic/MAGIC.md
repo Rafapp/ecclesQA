@@ -17,6 +17,19 @@ npm run package
 
 Double-click `launch.cmd` to start Magic locally; it runs `npm ci` automatically only when Node dependencies are missing. `npm start` launches the Electron app from a terminal. `npm run build:portable` (also available as `npm run build`) creates `dist/magic-v<version>-portable.exe`, which can be copied to another Windows device. `npm run package` creates a local release archive.
 
+## Sorcerer server batches
+
+For a large batch (normally five or more files), select the same source and
+output folders as a local run, then enable **Send to Sorcerer server** in the
+run dialog. Enter the office server URL (for example,
+`http://sorcerer-pc:8765`) and the client token issued by the Sorcerer
+operator. Magic uploads the source folder, shows the server-side workflow
+progress, and downloads the completed output into the selected local output
+folder. The token is stored only in this Windows user's Magic preferences.
+
+The server must be reachable on the office LAN and have the relevant Office or
+Acrobat application installed. See `../sorcerer/README.md` for server setup.
+
 ## Layout
 
 - `app/main.js` starts Electron and manages the script runner.

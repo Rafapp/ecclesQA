@@ -1,5 +1,6 @@
 beautifulsoup4
 lxml
+openpyxl
 Pillow
 pypdf
 pywin32

@@ -2,6 +2,10 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("path");
 const { execFileSync, spawn } = require("child_process");
 const fs = require("fs");
+const fsp = require("fs/promises");
+const os = require("os");
+const http = require("http");
+const https = require("https");
 
 const APP_VERSION = app.getVersion();
 
@@ -120,6 +124,112 @@ ipcMain.handle("set-pref", (_event, { key, value }) => {
   const prefs = loadPrefs();
   prefs[key] = value;
   savePrefs(prefs);
+});
+
+// â”€â”€ Sorcerer LAN client â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+function requestSorcerer(serverUrl, token, method, pathname, body, headers = {}) {
+  const base = new URL(serverUrl);
+  if (!/^https?:$/.test(base.protocol)) throw new Error("Sorcerer URL must use http or https.");
+  const client = base.protocol === "https:" ? https : http;
+  const requestPath = new URL(pathname, base).pathname;
+  return new Promise((resolve, reject) => {
+    const req = client.request({
+      protocol: base.protocol,
+      hostname: base.hostname,
+      port: base.port || (base.protocol === "https:" ? 443 : 80),
+      path: requestPath,
+      method,
+      headers: { Authorization: `Bearer ${token}`, ...headers, ...(body ? { "Content-Length": body.length } : {}) },
+      timeout: 30_000,
+    }, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => {
+        const data = Buffer.concat(chunks);
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          let message = `Sorcerer request failed (${res.statusCode}).`;
+          try { message = JSON.parse(data.toString()).error || message; } catch {}
+          reject(new Error(message));
+        } else resolve({ data, contentType: res.headers["content-type"] });
+      });
+    });
+    req.on("timeout", () => req.destroy(new Error("Sorcerer did not respond in time.")));
+    req.on("error", reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+function runPowerShell(script, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script, ...args], { windowsHide: true });
+    let error = "";
+    child.stderr.on("data", (chunk) => { error += chunk.toString(); });
+    child.on("error", reject);
+    child.on("close", (code) => code === 0 ? resolve() : reject(new Error(error.trim() || `PowerShell exited with code ${code}.`)));
+  });
+}
+
+async function createSourceArchive(sourceFolder) {
+  const stat = await fsp.stat(sourceFolder);
+  if (!stat.isDirectory()) throw new Error("Sorcerer source must be a folder.");
+  const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "magic-sorcerer-"));
+  const archive = path.join(tempDir, "input.zip");
+  await runPowerShell("param($source,$archive) Compress-Archive -Path (Join-Path $source '*') -DestinationPath $archive -Force", [sourceFolder, archive]);
+  return { tempDir, archive };
+}
+
+ipcMain.handle("sorcerer-submit", async (_event, payload) => {
+  const { serverUrl, token, jobType, sourceFolder, metadata = {}, priority = 50 } = payload;
+  if (!token || !jobType || !sourceFolder) throw new Error("Sorcerer server, token, job type, and source folder are required.");
+  const { tempDir, archive } = await createSourceArchive(sourceFolder);
+  try {
+    const body = await fsp.readFile(archive);
+    const response = await requestSorcerer(serverUrl, token, "POST", "/v1/jobs", body, {
+      "Content-Type": "application/zip",
+      "X-Sorcerer-Job-Type": jobType,
+      "X-Sorcerer-Priority": String(Math.max(0, Math.min(100, Number(priority) || 50))),
+      "X-Sorcerer-Metadata": JSON.stringify(metadata),
+    });
+    return JSON.parse(response.data.toString());
+  } finally {
+    await fsp.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+ipcMain.handle("sorcerer-job", async (_event, { serverUrl, token, jobId }) => {
+  const response = await requestSorcerer(serverUrl, token, "GET", `/v1/jobs/${encodeURIComponent(jobId)}`);
+  return JSON.parse(response.data.toString());
+});
+
+ipcMain.handle("sorcerer-jobs", async (_event, { serverUrl, token }) => {
+  const response = await requestSorcerer(serverUrl, token, "GET", "/v1/jobs");
+  return JSON.parse(response.data.toString());
+});
+
+ipcMain.handle("sorcerer-cancel", async (_event, { serverUrl, token, jobId }) => {
+  const response = await requestSorcerer(serverUrl, token, "POST", `/v1/jobs/${encodeURIComponent(jobId)}/cancel`);
+  return JSON.parse(response.data.toString());
+});
+
+ipcMain.handle("sorcerer-requeue", async (_event, { serverUrl, token, jobId }) => {
+  const response = await requestSorcerer(serverUrl, token, "POST", `/v1/jobs/${encodeURIComponent(jobId)}/requeue`);
+  return JSON.parse(response.data.toString());
+});
+
+ipcMain.handle("sorcerer-download", async (_event, { serverUrl, token, jobId, outputFolder }) => {
+  const response = await requestSorcerer(serverUrl, token, "GET", `/v1/jobs/${encodeURIComponent(jobId)}/result`);
+  await fsp.mkdir(outputFolder, { recursive: true });
+  const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "magic-sorcerer-result-"));
+  const archive = path.join(tempDir, "result.zip");
+  try {
+    await fsp.writeFile(archive, response.data);
+    await runPowerShell("param($archive,$destination) Expand-Archive -LiteralPath $archive -DestinationPath $destination -Force", [archive, outputFolder]);
+  } finally {
+    await fsp.rm(tempDir, { recursive: true, force: true });
+  }
+  return { outputFolder };
 });
 
 // ── IPC: script runner ────────────────────────────────────────────────────────

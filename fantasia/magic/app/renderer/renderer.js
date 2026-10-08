@@ -12,6 +12,9 @@ const outputWaitTimers = new Map();
 let progressStepKey = null;
 let progressStepStartedAt = null;
 let progressElapsedTimer = null;
+let sorcererJobId = null;
+let sorcererPollTimer = null;
+let sorcererPrefs = { enabled: false, serverUrl: "", token: "", priority: 50 };
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -26,9 +29,12 @@ async function init() {
   document.title = `Magic v${version}`;
 
   autoApprove = !!prefs.autoApprove;
+  sorcererPrefs = { enabled: !!prefs.sorcererEnabled, serverUrl: prefs.sorcererUrl || "", token: prefs.sorcererToken || "", priority: Number(prefs.sorcererPriority) || 50 };
 
   renderScripts(scripts);
   wireDialogControls();
+  refreshSorcererOverview();
+  setInterval(refreshSorcererOverview, 10_000);
   window.magic.onAppClosing(showClosingScreen);
 }
 
@@ -81,6 +87,11 @@ function openRunDialog(script) {
 
   // Sync auto-approve checkbox with persisted pref
   document.getElementById("auto-approve-chk").checked = autoApprove;
+  document.getElementById("sorcerer-chk").checked = sorcererPrefs.enabled;
+  document.getElementById("sorcerer-url").value = sorcererPrefs.serverUrl;
+  document.getElementById("sorcerer-token").value = sorcererPrefs.token;
+  document.getElementById("sorcerer-priority").value = sorcererPrefs.priority;
+  document.getElementById("sorcerer-fields").classList.toggle("hidden", !sorcererPrefs.enabled);
 
   show("run-overlay");
 }
@@ -93,6 +104,11 @@ function closeRunDialog() {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   clearOutputWaitTimers();
   clearProgressElapsedTimer();
+  clearTimeout(sorcererPollTimer);
+  if (sorcererJobId) {
+    window.magic.cancelSorcerer({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token, jobId: sorcererJobId }).catch(() => {});
+    sorcererJobId = null;
+  }
   pendingConfirm = null;
   hide("run-overlay");
 }
@@ -199,6 +215,7 @@ function wireDialogControls() {
   document.getElementById("open-output-btn").addEventListener("click", () => {
     if (outputFolder) window.magic.openFolder(outputFolder);
   });
+  document.getElementById("sorcerer-refresh-btn").addEventListener("click", refreshSorcererOverview);
 
   document.getElementById("confirm-continue-btn").addEventListener("click", () => {
     if (pendingConfirm) { pendingConfirm(true); pendingConfirm = null; }
@@ -215,6 +232,80 @@ function wireDialogControls() {
     autoApprove = e.target.checked;
     window.magic.setPref("autoApprove", autoApprove);
   });
+  document.getElementById("sorcerer-chk").addEventListener("change", (e) => {
+    sorcererPrefs.enabled = e.target.checked;
+    document.getElementById("sorcerer-fields").classList.toggle("hidden", !e.target.checked);
+    window.magic.setPref("sorcererEnabled", sorcererPrefs.enabled);
+  });
+  for (const [id, key, prefKey] of [["sorcerer-url", "serverUrl", "sorcererUrl"], ["sorcerer-token", "token", "sorcererToken"], ["sorcerer-priority", "priority", "sorcererPriority"]]) {
+    document.getElementById(id).addEventListener("change", (e) => {
+      sorcererPrefs[key] = key === "priority" ? Math.max(0, Math.min(100, Number(e.target.value) || 50)) : e.target.value.trim();
+      window.magic.setPref(prefKey, sorcererPrefs[key]);
+    });
+  }
+}
+
+async function refreshSorcererOverview() {
+  const detail = document.getElementById("sorcerer-overview-detail");
+  const body = document.getElementById("sorcerer-jobs-body");
+  if (!sorcererPrefs.serverUrl || !sorcererPrefs.token) {
+    detail.textContent = "Configure a server in a run dialog to view remote jobs.";
+    body.innerHTML = `<tr class="placeholder-row"><td colspan="4">No server configured.</td></tr>`;
+    return;
+  }
+  detail.textContent = `Checking ${sorcererPrefs.serverUrl}…`;
+  try {
+    const { jobs } = await window.magic.getSorcererJobs({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token });
+    detail.textContent = `${jobs.length} job${jobs.length === 1 ? "" : "s"} visible to this client.`;
+    if (!jobs.length) {
+      body.innerHTML = `<tr class="placeholder-row"><td colspan="4">No submitted Sorcerer jobs.</td></tr>`;
+      return;
+    }
+    body.replaceChildren(...jobs.map((job) => {
+      const row = document.createElement("tr");
+      const jobCell = document.createElement("td");
+      jobCell.textContent = `${job.type} · ${job.id.slice(0, 8)}`;
+      const statusCell = document.createElement("td");
+      const status = document.createElement("span");
+      status.className = `job-status job-status--${String(job.status).replace(/[^a-z]/g, "")}`;
+      status.textContent = job.status;
+      statusCell.appendChild(status);
+      const messageCell = document.createElement("td");
+      messageCell.textContent = job.message || "—";
+      const actionsCell = document.createElement("td");
+      actionsCell.className = "job-actions";
+      if (["queued", "running"].includes(job.status)) {
+        const cancel = document.createElement("button");
+        cancel.className = "btn btn--danger";
+        cancel.type = "button";
+        cancel.textContent = "Cancel";
+        cancel.addEventListener("click", async () => {
+          cancel.disabled = true;
+          try { await window.magic.cancelSorcerer({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token, jobId: job.id }); }
+          catch (error) { alert(`Could not cancel job: ${error.message}`); }
+          refreshSorcererOverview();
+        });
+        actionsCell.appendChild(cancel);
+      } else {
+        const requeue = document.createElement("button");
+        requeue.className = "btn btn--secondary";
+        requeue.type = "button";
+        requeue.textContent = "Requeue";
+        requeue.addEventListener("click", async () => {
+          requeue.disabled = true;
+          try { await window.magic.requeueSorcerer({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token, jobId: job.id }); }
+          catch (error) { alert(`Could not requeue job: ${error.message}`); }
+          refreshSorcererOverview();
+        });
+        actionsCell.appendChild(requeue);
+      }
+      row.append(jobCell, statusCell, messageCell, actionsCell);
+      return row;
+    }));
+  } catch (error) {
+    detail.textContent = `Sorcerer unavailable: ${error.message}`;
+    body.innerHTML = `<tr class="placeholder-row"><td colspan="4">Could not load server jobs.</td></tr>`;
+  }
 }
 
 function requestStopAfterCurrent() {
@@ -222,7 +313,11 @@ function requestStopAfterCurrent() {
   const button = document.getElementById("stop-after-current-btn");
   button.disabled = true;
   button.textContent = "Stopping after current file";
-  window.magic.stopAfterCurrent(activeRunId);
+  if (sorcererJobId) {
+    window.magic.cancelSorcerer({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token, jobId: sorcererJobId })
+      .then(() => finishRun("Sorcerer job cancelled.", false))
+      .catch((error) => finishRun(error.message, true));
+  } else window.magic.stopAfterCurrent(activeRunId);
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -284,11 +379,65 @@ async function launchScript() {
   document.getElementById("stop-after-current-btn").disabled = false;
   document.getElementById("stop-after-current-btn").textContent = "Stop after current file";
 
-  // Subscribe to events
+  if (sorcererPrefs.enabled) {
+    sorcererPrefs.serverUrl = document.getElementById("sorcerer-url").value.trim();
+    sorcererPrefs.token = document.getElementById("sorcerer-token").value.trim();
+    sorcererPrefs.priority = Math.max(0, Math.min(100, Number(document.getElementById("sorcerer-priority").value) || 50));
+    window.magic.setPref("sorcererUrl", sorcererPrefs.serverUrl);
+    window.magic.setPref("sorcererToken", sorcererPrefs.token);
+    window.magic.setPref("sorcererPriority", sorcererPrefs.priority);
+    if (!sorcererPrefs.serverUrl || !sorcererPrefs.token) {
+      finishRun("Enter the Sorcerer server URL and client access token.", true);
+      return;
+    }
+    try {
+      const sourceField = (script.inputs || []).find((field) => field.type === "folder");
+      const job = await window.magic.submitSorcerer({
+        serverUrl: sorcererPrefs.serverUrl,
+        token: sorcererPrefs.token,
+        jobType: script.id,
+        sourceFolder: inputValues[sourceField?.id],
+        metadata: { output_name: outputValues.output_name },
+        priority: sorcererPrefs.priority,
+      });
+      sorcererJobId = job.id;
+      appendToLastRunningStep(`Submitted to Sorcerer as ${job.id.slice(0, 8)}. Waiting in queue.`);
+      pollSorcererJob();
+    } catch (error) {
+      finishRun(`Could not submit to Sorcerer: ${error.message}`, true);
+    }
+    return;
+  }
+
+  // Subscribe to local workflow events
   if (unsubscribe) unsubscribe();
   unsubscribe = window.magic.onScriptEvent(handleScriptEvent);
 
   window.magic.runScript(activeRunId, script.scriptFile, args);
+}
+
+async function pollSorcererJob() {
+  if (!sorcererJobId || !activeRunId) return;
+  try {
+    const job = await window.magic.getSorcererJob({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token, jobId: sorcererJobId });
+    if (job.progress?.type) handleScriptEvent({ ...job.progress, runId: activeRunId });
+    if (job.status === "completed") {
+      appendToLastRunningStep("Downloading completed files from Sorcerer.");
+      await window.magic.downloadSorcerer({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token, jobId: sorcererJobId, outputFolder });
+      sorcererJobId = null;
+      refreshSorcererOverview();
+      return finishRun("Sorcerer completed the job and downloaded the output.", false);
+    }
+    if (job.status === "failed" || job.status === "cancelled") {
+      sorcererJobId = null;
+      refreshSorcererOverview();
+      return finishRun(job.message || `Sorcerer job ${job.status}.`, job.status === "failed");
+    }
+    sorcererPollTimer = setTimeout(pollSorcererJob, 2000);
+  } catch (error) {
+    sorcererJobId = null;
+    finishRun(`Lost contact with Sorcerer: ${error.message}`, true);
+  }
 }
 
 // ── Timeline builder ──────────────────────────────────────────────────────────
@@ -634,6 +783,7 @@ function finishRun(message, isError) {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   clearOutputWaitTimers();
   clearProgressElapsedTimer();
+  clearTimeout(sorcererPollTimer);
   activeRunId = null;
   hide("run-confirm");
   hide("stop-after-current-btn");

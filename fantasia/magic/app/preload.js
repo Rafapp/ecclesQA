@@ -7,6 +7,12 @@ contextBridge.exposeInMainWorld("magic", {
   openFolder:  (folderPath) => ipcRenderer.invoke("open-folder", folderPath),
   getPrefs:    () => ipcRenderer.invoke("get-prefs"),
   setPref:     (key, value) => ipcRenderer.invoke("set-pref", { key, value }),
+  submitSorcerer: (payload) => ipcRenderer.invoke("sorcerer-submit", payload),
+  getSorcererJob: (payload) => ipcRenderer.invoke("sorcerer-job", payload),
+  getSorcererJobs: (payload) => ipcRenderer.invoke("sorcerer-jobs", payload),
+  cancelSorcerer: (payload) => ipcRenderer.invoke("sorcerer-cancel", payload),
+  requeueSorcerer: (payload) => ipcRenderer.invoke("sorcerer-requeue", payload),
+  downloadSorcerer: (payload) => ipcRenderer.invoke("sorcerer-download", payload),
 
   runScript: (runId, scriptFile, args) =>
     ipcRenderer.invoke("run-script", { runId, scriptFile, args }),

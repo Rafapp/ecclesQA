@@ -6,7 +6,71 @@ This roadmap turns the May 22, 2026 UDOIT export into an implementation order fo
 
 Wand is the active production project. The near-term goal is a context-aware UDOIT and Canvas companion that helps reviewers inspect issues, open the matching Canvas content, highlight the target, and proceed through fixes without assuming direct cross-origin iframe DOM access.
 
-File repair, desktop apps, and server-side batch systems are outside the current production scope. Historical Magic and Sorcerer source has been removed from the active tree and remains available through Git history if needed.
+File repair and server-side batch work are now active as the Sorcerer delivery
+track. Wand remains independently maintained.
+
+## Sorcerer Progress
+
+- 2026-09-29: Added the Sorcerer LAN server foundation: authenticated client
+  tokens, persistent SQLite queue, priority scheduling, serialized workflow
+  execution, cancellation/requeue, progress capture, result ZIP download, and
+  a terminal status watcher. API and deployment documentation live in
+  `fantasia/sorcerer/`.
+- 2026-09-29: Added Magic's Sorcerer mode. It archives the selected source
+  folder, submits it to the authenticated queue, polls workflow progress,
+  supports cancellation, and extracts the completed result into the selected
+  local output folder.
+- 2026-09-29: Added a self-contained Sorcerer integration test for
+  authentication, queue submission, worker execution, and result delivery.
+- 2026-09-29: Hardened worker shutdown and test cleanup for Windows file-lock
+  behavior by joining the worker and closing subprocess output handles.
+- 2026-09-29: Fixed Sorcerer's SQLite lifecycle so each request releases its
+  database connection instead of retaining a Windows file lock.
+- 2026-09-29: Added regression coverage for priority ordering plus queued-job
+  cancellation and requeue behavior.
+- 2026-09-29: Built a fresh portable Magic executable containing the Sorcerer
+  client integration (`fantasia/magic/dist/magic-v1.0.0-portable.exe`).
+- 2026-09-29: Added a Windows logon-task installer and made `sorcerer.cmd`
+  prefer Magic's bundled Python runtime for a repeatable server launch.
+- 2026-09-29: Initialized `C:\SorcererData`, issued an initial client token,
+  and started the live Sorcerer server on port 8765. Loopback health and
+  authenticated queue checks passed.
+- 2026-09-29: Added automatic continuation for confirmed workflow stages on
+  server-submitted jobs, with test coverage for the remote approval handshake.
+- 2026-09-29: Live MHA smoke submission reached the server worker and exposed
+  a missing `openpyxl` requirement; added it to Magic's declared dependencies.
+- 2026-09-29: Added an embedded-Python workflow launcher after live execution
+  exposed that Magic's isolated runtime did not include `scripts/` on its
+  import path.
+- 2026-09-29: Live authenticated MHA smoke batch completed through the running
+  server, including automatic confirmation and result ZIP download. The result
+  contained the expected `live_smoke.xlsx` workbook.
+- 2026-09-29: Rebuilt Magic with the completed Sorcerer client and `openpyxl`
+  runtime dependency; added client-facing remote-batch instructions.
+- 2026-09-29: Attempted to install the Sorcerer logon task; Windows denied
+  task creation. The running server remains available, and the administrator
+  follow-up is documented in `HUMAN.md`.
+- 2026-09-29: Confirmed the live server is bound to `0.0.0.0:8765` and accepts
+  TCP connections through this workstation's LAN address (`10.18.58.226`).
+- 2026-09-29: Added a persistent Magic dashboard panel that lists the current
+  authenticated client's Sorcerer jobs and refreshes every ten seconds.
+- 2026-09-29: Added access-isolation coverage proving one allowed client token
+  cannot list or retrieve another client's jobs.
+- 2026-09-29: Rebuilt the portable Magic executable with the persistent
+  Sorcerer queue panel.
+- 2026-10-02: Added Magic controls for remote job priority, cancellation, and
+  requeue directly from the Sorcerer queue panel.
+- 2026-10-02: Added API-level test coverage for cancel and requeue actions.
+- 2026-10-02: Rebuilt the portable Magic executable with priority, cancel, and
+  requeue controls in the Sorcerer queue panel.
+- 2026-10-02: Added server commands to list and revoke allowed client tokens,
+  including protection against accidental duplicate device names.
+- 2026-10-02: Bounded Sorcerer ZIP intake and extraction by expanded size and
+  entry count, with regression coverage, so a malformed archive cannot consume
+  unbounded server storage.
+- 2026-10-02: Closed cancellation and archive-validation edge cases: a
+  cancellation observed during input extraction now prevents workflow launch,
+  and unsafe ZIP paths are rejected at submission.
 
 ## What The Data Says
 

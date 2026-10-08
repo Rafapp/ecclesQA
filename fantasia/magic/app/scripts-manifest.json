@@ -39,6 +39,36 @@
     ]
   },
   {
+    "id": "build_syllabus",
+    "name": "Update Syllabus Formatting",
+    "description": "Moves exact-match instructor content into the current syllabus template, replaces the course schedule, and flags anything needing instructional-design review.",
+    "scriptFile": "build_syllabus.py",
+    "inputs": [
+      {
+        "id": "source_folder",
+        "label": "Syllabus Source Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder containing one syllabus template, one prior instructor syllabus, and one updated course schedule (.docx)"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "output_folder",
+        "label": "Output Folder",
+        "type": "folder",
+        "required": true,
+        "description": "Folder for the syllabus draft, highlighted source copy, and transfer summary"
+      }
+    ],
+    "steps": [
+      { "id": "scan", "label": "Checking source files", "confirm": true },
+      { "id": "transfer", "label": "Moving matched content", "confirm": false },
+      { "id": "flag", "label": "Flagging items for review", "confirm": false },
+      { "id": "save", "label": "Saving handoff files", "confirm": false }
+    ]
+  },
+  {
     "id": "docx_remediation",
     "name": "Word Accessibility",
     "description": "Copies Word files to your output folder, then applies the recovered accessibility workflow.",
