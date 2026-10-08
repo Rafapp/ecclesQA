@@ -121,6 +121,7 @@ class SorcererServerTest(unittest.TestCase):
         conn.close()
         self.assertEqual(response.status, 200)
         self.assertIn("Sorcerer operator dashboard", page)
+        self.assertIn("Recent outcomes", page)
         conn = http.client.HTTPConnection("127.0.0.1", self.httpd.server_port)
         conn.request("GET", "/dashboard/data")
         response = conn.getresponse()
