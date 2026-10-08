@@ -36,6 +36,11 @@ both password-gate secret bindings before it receives traffic, polls the live
 login page, and rolls back to the prior healthy Worker version if any
 post-deployment check fails. It never reads or prints secret values.
 
+The `Monitor protected Fantasia site` GitHub Actions workflow also checks the
+live password-gate form hourly and can be run manually. It is read-only: a
+failure is an alert to investigate, never a reason to auto-deploy or change
+the Worker.
+
 ## Sorcerer operational visibility
 
 The detailed Sorcerer dashboard stays on the server workstation. The boundary
