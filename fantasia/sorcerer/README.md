@@ -32,6 +32,28 @@ the next server restart.
 In another terminal, `sorcerer.cmd status --data-dir C:\SorcererData` streams
 the queue. Press `Ctrl+C` to stop watching.
 
+## Local operator dashboard and telemetry
+
+On the server workstation, the documented local dashboard refreshes every five
+seconds. It is deliberately loopback-only and does not require a client token.
+It reports aggregate queue depth, active work, average queue wait and runtime,
+completion rate, a seven-day throughput view, workflow breakdown, result
+publishing outcomes, and copyable job IDs. It does not return client names,
+tokens, input paths, archive names, or result paths.
+
+The built-in dashboard is the supported operational view. Grafana is not a
+runtime dependency: it would require an authorized, separately secured metrics
+collector and is only worth evaluating if long-term organization-wide monitoring
+becomes necessary. Do not expose this dashboard or any future metrics endpoint
+to the public internet.
+
+Each submission has a stable job ID and an `attempt` number. Requeueing a
+terminal job increments its attempt number. When the current attempt has a
+result archive, Sorcerer preserves it as a prior attempt before the requeued
+workflow creates a newer current result. Published result filenames include the
+attempt number after the first attempt, preventing a retry from replacing a
+previously published archive.
+
 To keep the server available after this PC restarts, run
 `install-logon-task.cmd` once from the server user's interactive Windows
 session. Office and Acrobat automation must run in that interactive session,

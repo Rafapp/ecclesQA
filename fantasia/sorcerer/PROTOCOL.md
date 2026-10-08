@@ -9,7 +9,7 @@ All endpoints require `Authorization: Bearer <client-token>` except `GET
 | `GET` | `/v1/jobs` | List jobs visible to the authenticated client. |
 | `GET` | `/v1/jobs/{id}` | Read one job and its latest progress event. |
 | `POST` | `/v1/jobs/{id}/cancel` | Cancel a queued or running job. |
-| `POST` | `/v1/jobs/{id}/requeue` | Put a terminal job back in the queue. |
+| `POST` | `/v1/jobs/{id}/requeue` | Put a terminal job back in the queue as its next attempt. Prior completed result archives are preserved before a new current result is created. |
 | `GET` | `/v1/jobs/{id}/result` | Download completed output as `application/zip`. |
 
 The server rejects archive path traversal, encrypted ZIPs, unknown job types,
@@ -19,3 +19,7 @@ Server execution is serialized because Office and Acrobat automation require a
 single interactive Windows desktop session. Submitted server jobs automatically
 continue workflow confirmation checkpoints; the client's explicit submission is
 the approval boundary.
+
+Job responses include an `attempt` field. The job ID remains stable when a
+terminal job is requeued, while `attempt` increments. Clients should show both
+values when helping an operator identify an execution.

@@ -17,7 +17,7 @@ import time
 import uuid
 import zipfile
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -61,13 +61,19 @@ class Queue:
               id TEXT PRIMARY KEY, client TEXT NOT NULL, type TEXT NOT NULL,
               priority INTEGER NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL,
               started_at TEXT, finished_at TEXT, metadata TEXT NOT NULL, message TEXT,
-              progress TEXT, input_zip TEXT NOT NULL, result_zip TEXT)""")
+              progress TEXT, input_zip TEXT NOT NULL, result_zip TEXT,
+              attempt INTEGER NOT NULL DEFAULT 1, previous_result_zips TEXT NOT NULL DEFAULT '[]')""")
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(jobs)")}
+            if "attempt" not in columns:
+                db.execute("ALTER TABLE jobs ADD COLUMN attempt INTEGER NOT NULL DEFAULT 1")
+            if "previous_result_zips" not in columns:
+                db.execute("ALTER TABLE jobs ADD COLUMN previous_result_zips TEXT NOT NULL DEFAULT '[]'")
             db.execute("UPDATE jobs SET status='queued', message='Recovered after server restart' WHERE status='running'")
 
     def create(self, client, job_type, priority, metadata, input_zip):
         job_id = uuid.uuid4().hex
         with closing(self.connect()) as db, db:
-            db.execute("INSERT INTO jobs VALUES (?, ?, ?, ?, 'queued', ?, NULL, NULL, ?, 'Queued', '{}', ?, NULL)",
+            db.execute("INSERT INTO jobs (id, client, type, priority, status, created_at, started_at, finished_at, metadata, message, progress, input_zip, result_zip) VALUES (?, ?, ?, ?, 'queued', ?, NULL, NULL, ?, 'Queued', '{}', ?, NULL)",
                        (job_id, client, job_type, priority, utcnow(), json.dumps(metadata), str(input_zip)))
         return self.get(job_id)
 
@@ -110,7 +116,13 @@ class Queue:
     def requeue(self, job_id, client):
         job = self.get(job_id, client)
         if not job or job["status"] not in {"failed", "cancelled", "completed"}: return None
-        self.update(job_id, status="queued", started_at=None, finished_at=None, message="Requeued", progress="{}", result_zip=None)
+        previous = json.loads(job.get("previous_result_zips") or "[]")
+        result_zip = job.get("result_zip")
+        if result_zip and Path(result_zip).is_file():
+            preserved = Path(result_zip).with_name(f"result-attempt-{job.get('attempt', 1)}.zip")
+            shutil.copy2(result_zip, preserved)
+            previous.append(str(preserved))
+        self.update(job_id, status="queued", started_at=None, finished_at=None, message="Requeued as next attempt", progress="{}", result_zip=None, attempt=job.get("attempt", 1) + 1, previous_result_zips=json.dumps(previous))
         return self.get(job_id, client)
 
 
@@ -126,6 +138,11 @@ class Worker(threading.Thread):
     def execute(self, job):
         job_dir = self.queue.data_dir / "jobs" / job["id"]
         source, output = job_dir / "input", job_dir / "output"
+        # A retried job reuses its immutable input archive but never reuses an
+        # old extracted tree or output files. Its completed ZIP was preserved
+        # by requeue() before this cleanup.
+        shutil.rmtree(source, ignore_errors=True)
+        shutil.rmtree(output, ignore_errors=True)
         source.mkdir(parents=True, exist_ok=True); output.mkdir(exist_ok=True)
         try:
             safe_extract(
@@ -206,7 +223,9 @@ def publish_result(result: Path, job: dict, config: dict) -> str:
     destination_dir = Path(share_dir)
     if not destination_dir.is_dir():
         return "Completed; UBox publishing deferred because the shared folder is unavailable"
-    destination = destination_dir / f"sorcerer-{job['type']}-{job['id']}.zip"
+    attempt = job.get("attempt", 1)
+    attempt_suffix = "" if attempt == 1 else f"-attempt-{attempt}"
+    destination = destination_dir / f"sorcerer-{job['type']}-{job['id']}{attempt_suffix}.zip"
     temporary = destination_dir / f".{destination.name}.{uuid.uuid4().hex}.partial"
     try:
         shutil.copy2(result, temporary)
@@ -218,22 +237,105 @@ def publish_result(result: Path, job: dict, config: dict) -> str:
 
 
 def public_job(job):
-    keys = ("id", "type", "priority", "status", "created_at", "started_at", "finished_at", "message", "progress")
+    keys = ("id", "type", "priority", "status", "created_at", "started_at", "finished_at", "message", "progress", "attempt")
     result = {key: job.get(key) for key in keys}
+    result["attempt"] = result["attempt"] or 1
     result["progress"] = json.loads(result["progress"] or "{}")
     return result
 
 
+def parse_timestamp(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def seconds_between(start, end):
+    if not start or not end:
+        return None
+    return max(0, round((end - start).total_seconds()))
+
+
+def progress_message(job):
+    progress = job.get("progress") or {}
+    if isinstance(progress, str):
+        try:
+            progress = json.loads(progress)
+        except json.JSONDecodeError:
+            progress = {}
+    return progress.get("message") or job.get("message")
+
+
+def operator_metrics(jobs, now=None):
+    """Return local-only aggregate telemetry without client, path, or archive data."""
+    now = now or datetime.now(timezone.utc)
+    counts = {status: 0 for status in ("queued", "running", "completed", "failed", "cancelled")}
+    by_type, waits, runtimes = {}, [], []
+    day_buckets = {str((now - timedelta(days=offset)).date()): {"date": str((now - timedelta(days=offset)).date()), "completed": 0, "failed": 0} for offset in range(6, -1, -1)}
+    publish = {"published": 0, "deferred": 0, "not_configured": 0}
+    active = None
+    for job in jobs:
+        status = job.get("status", "")
+        if status in counts:
+            counts[status] += 1
+        created, started, finished = (parse_timestamp(job.get(key)) for key in ("created_at", "started_at", "finished_at"))
+        if started:
+            wait = seconds_between(created, started)
+            if wait is not None:
+                waits.append(wait)
+        if finished:
+            runtime = seconds_between(started, finished)
+            if runtime is not None:
+                runtimes.append(runtime)
+            bucket = day_buckets.get(str(finished.date()))
+            if bucket and status in {"completed", "failed"}:
+                bucket[status] += 1
+        entry = by_type.setdefault(job.get("type", "unknown"), {"type": job.get("type", "unknown"), "completed": 0, "failed": 0, "cancelled": 0, "total": 0})
+        entry["total"] += 1
+        if status in entry:
+            entry[status] += 1
+        message = (job.get("message") or "").lower()
+        if status == "completed":
+            if "published to ubox" in message:
+                publish["published"] += 1
+            elif "publishing deferred" in message:
+                publish["deferred"] += 1
+            else:
+                publish["not_configured"] += 1
+        if status == "running":
+            active = {"id": job.get("id"), "type": job.get("type"), "priority": job.get("priority"), "started_at": job.get("started_at"), "stage": progress_message(job), "attempt": job.get("attempt") or 1}
+    terminal = counts["completed"] + counts["failed"]
+    return {
+        "generated_at": now.isoformat(),
+        "counts": counts,
+        "queue_depth": counts["queued"] + counts["running"],
+        "active": active,
+        "timing": {
+            "average_wait_seconds": round(sum(waits) / len(waits)) if waits else None,
+            "average_runtime_seconds": round(sum(runtimes) / len(runtimes)) if runtimes else None,
+            "completion_rate": round((counts["completed"] / terminal) * 100) if terminal else None,
+        },
+        "throughput": list(day_buckets.values()),
+        "by_type": sorted(by_type.values(), key=lambda entry: (-entry["total"], entry["type"])),
+        "publishing": publish,
+    }
+
+
+def operator_dashboard_data(jobs):
+    return {"jobs": [public_job(job) for job in jobs], "metrics": operator_metrics(jobs)}
+
+
 def operator_dashboard_html() -> str:
+    """Local-only dashboard with derived queue telemetry and no client data."""
     return """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sorcerer operator dashboard</title><style>
-body{margin:0;background:#f5f3ef;color:#201f1d;font:15px system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:32px}
-h1{margin:0}.intro{color:#625d57}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}.card,table{background:#fff;border:1px solid #ddd7cf;border-radius:10px}.card{padding:18px}.card b{display:block;font-size:28px}.card span{color:#625d57}
-table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden}th,td{padding:12px;text-align:left;border-bottom:1px solid #eee9e2}th{background:#f8f6f2;font-size:12px;text-transform:uppercase;letter-spacing:.05em}tr:last-child td{border:0}.status{font-weight:700;text-transform:capitalize}.completed{color:#28623b}.failed,.cancelled{color:#9b1c1c}.queued{color:#8a5b00}.running{color:#155b91}.empty{color:#625d57;padding:20px}.stamp{color:#625d57;font-size:13px}
-@media(max-width:700px){main{padding:20px}.cards{grid-template-columns:repeat(2,1fr)}table{font-size:13px}th:nth-child(3),td:nth-child(3){display:none}}</style></head>
-<body><main><h1>Sorcerer operator dashboard</h1><p class="intro">Local-only server view. Refreshes every five seconds.</p><section class="cards" id="counts"></section><p class="stamp" id="stamp">Loading queue…</p><table><thead><tr><th>Job</th><th>Status</th><th>Priority</th><th>Created</th><th>Message</th></tr></thead><tbody id="jobs"></tbody></table></main>
-<script>const esc=(v)=>String(v??"");function render(data){const jobs=data.jobs;const counts={queued:0,running:0,completed:0,failed:0,cancelled:0};jobs.forEach(j=>counts[j.status]=(counts[j.status]||0)+1);document.querySelector('#counts').replaceChildren(...['queued','running','completed','failed'].map(s=>{const e=document.createElement('div');e.className='card';e.innerHTML=`<b>${counts[s]||0}</b><span>${s}</span>`;return e}));const body=document.querySelector('#jobs');body.replaceChildren();if(!jobs.length){const row=document.createElement('tr');row.innerHTML='<td class="empty" colspan="5">No jobs yet.</td>';body.append(row)}jobs.forEach(j=>{const row=document.createElement('tr');for(const [value,className] of [[j.type],[j.status,`status ${j.status}`],[`P${j.priority}`],[new Date(j.created_at).toLocaleString()],[j.message]]){const cell=document.createElement('td');cell.textContent=esc(value);if(className)cell.className=className;row.append(cell)}body.append(row)});document.querySelector('#stamp').textContent=`Updated ${new Date().toLocaleTimeString()} · ${jobs.length} total jobs`};async function load(){try{render(await (await fetch('/dashboard/data',{cache:'no-store'})).json())}catch{document.querySelector('#stamp').textContent='Dashboard data is temporarily unavailable.'}}load();setInterval(load,5000);</script></body></html>"""
+:root{color-scheme:light;font-family:system-ui,sans-serif;color:#20242c;background:#f5f7fa}*{box-sizing:border-box}body{margin:0}main{max-width:1200px;margin:auto;padding:32px}.eyebrow{color:#38618d;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.top{display:flex;justify-content:space-between;gap:20px;align-items:end}.top h1{margin:5px 0;font-size:2rem}.muted{color:#5e6978}.stamp{font-size:.86rem}.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:24px 0}.card,.panel{background:#fff;border:1px solid #dce2e9;border-radius:12px;box-shadow:0 2px 10px #1c30400a}.card{padding:16px}.card strong{display:block;font-size:1.8rem}.card span,.label{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#667384}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:16px}.panel{padding:18px}.panel h2{font-size:1rem;margin:0 0 14px}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.fact{padding:10px;background:#f5f7fa;border-radius:8px}.fact strong{display:block;font-size:1.25rem}.bars{height:150px;display:flex;align-items:end;gap:7px;border-bottom:1px solid #dce2e9;padding:0 4px}.bar{flex:1;min-width:18px;background:#3876ad;border-radius:5px 5px 0 0;position:relative}.bar.fail{background:#bd4a4a}.bar span{position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:.7rem;color:#667384}.legend{display:flex;gap:16px;margin:30px 0 0;font-size:.82rem}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#3876ad}.dot.fail{background:#bd4a4a}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid #edf0f3;font-size:.9rem}th{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#667384}.status{font-weight:700;text-transform:capitalize}.status-completed{color:#18754a}.status-failed,.status-cancelled{color:#ad3434}.status-running{color:#176295}.id{font-family:ui-monospace,monospace;font-size:.8rem}button{border:1px solid #cbd5df;border-radius:6px;background:#fff;padding:4px 7px;cursor:pointer}.empty{color:#667384;text-align:center;padding:24px}@media(max-width:800px){main{padding:20px}.metrics{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.facts{grid-template-columns:1fr}.top{align-items:start;flex-direction:column}th:nth-child(4),td:nth-child(4){display:none}}</style></head>
+<body><main><header class="top"><div><div class="eyebrow">Local operator console</div><h1>Sorcerer queue health</h1><p class="muted">Aggregated queue activity only. This dashboard is available on the server itself.</p></div><p class="muted stamp" id="stamp">Loading telemetry...</p></header><section class="metrics" id="counts"></section><section class="grid"><article class="panel"><h2>Recent throughput</h2><div class="bars" id="throughput"></div><p class="legend"><span><i class="dot"></i> Completed</span><span><i class="dot fail"></i> Failed</span></p></article><article class="panel"><h2>Queue timing</h2><div class="facts" id="timing"></div><h2 style="margin-top:20px">Active work</h2><p class="muted" id="active">No workflow is running.</p></article></section><section class="grid"><article class="panel"><h2>Workflow breakdown</h2><div id="types" class="muted">No completed history yet.</div></article><article class="panel"><h2>Result publishing</h2><div class="facts" id="publishing"></div></article></section><section class="panel"><h2>Recent jobs</h2><table><thead><tr><th>Job ID</th><th>Workflow</th><th>Status</th><th>Attempt</th><th>Submitted</th><th>Message</th></tr></thead><tbody id="jobs"></tbody></table></section></main>
+<script>const q=s=>document.querySelector(s),esc=v=>String(v??''),n=v=>v==null?'Not enough data':v,fmt=s=>s==null?'Not enough data':s<60?`${s}s`:`${Math.round(s/60)}m`,when=v=>v?new Date(v).toLocaleString():'-',copy=async id=>{try{await navigator.clipboard.writeText(id);q('#stamp').textContent='Job ID copied.'}catch{q('#stamp').textContent='Select and copy the job ID manually.'}};function facts(target,items){const root=q(target);root.replaceChildren(...items.map(([label,value])=>{const e=document.createElement('div');e.className='fact';e.innerHTML=`<span class="label">${esc(label)}</span><strong>${esc(value)}</strong>`;return e}))}function render(data){const m=data.metrics||{},c=m.counts||{};q('#counts').replaceChildren(...[['Queue depth',m.queue_depth],['Queued',c.queued],['Running',c.running],['Completed',c.completed],['Failed',c.failed]].map(([label,value])=>{const e=document.createElement('article');e.className='card';e.innerHTML=`<span>${label}</span><strong>${value??0}</strong>`;return e}));facts('#timing',[['Average wait',fmt(m.timing?.average_wait_seconds)],['Average runtime',fmt(m.timing?.average_runtime_seconds)],['Completion rate',m.timing?.completion_rate==null?'Not enough data':`${m.timing.completion_rate}%`]]);const a=m.active;q('#active').textContent=a?`${a.type} (attempt ${a.attempt}) | ${a.id} | priority ${a.priority} | ${a.stage||'Working'}`:'No workflow is running.';facts('#publishing',[['Published',m.publishing?.published??0],['Deferred',m.publishing?.deferred??0],['Not configured',m.publishing?.not_configured??0]]);const max=Math.max(1,...(m.throughput||[]).map(x=>x.completed+x.failed));q('#throughput').replaceChildren(...(m.throughput||[]).map(x=>{const e=document.createElement('div');e.className='bar';e.style.height=`${Math.max(3,100*(x.completed+x.failed)/max)}%`;e.title=`${x.date}: ${x.completed} completed, ${x.failed} failed`;e.innerHTML=`<span>${x.date.slice(5)}</span>`;return e}));const types=q('#types');types.replaceChildren(...(m.by_type||[]).map(x=>{const p=document.createElement('p');p.textContent=`${x.type}: ${x.total} total, ${x.completed} completed, ${x.failed} failed, ${x.cancelled} cancelled`;return p}));if(!(m.by_type||[]).length)types.textContent='No workflow history yet.';const body=q('#jobs');body.replaceChildren();const jobs=data.jobs||[];if(!jobs.length){body.innerHTML='<tr><td class="empty" colspan="6">No jobs have been submitted yet.</td></tr>'}for(const j of jobs){const row=document.createElement('tr');const id=document.createElement('td');id.className='id';const b=document.createElement('button');b.textContent=j.id;b.title='Copy job ID';b.addEventListener('click',()=>copy(j.id));id.append(b);const state=document.createElement('td');state.className=`status status-${esc(j.status)}`;state.textContent=j.status;for(const cell of [id,Object.assign(document.createElement('td'),{textContent:j.type}),state,Object.assign(document.createElement('td'),{textContent:j.attempt||1}),Object.assign(document.createElement('td'),{textContent:when(j.created_at)}),Object.assign(document.createElement('td'),{textContent:j.message||'-'})])row.append(cell);body.append(row)}q('#stamp').textContent=`Updated ${new Date().toLocaleTimeString()} | ${jobs.length} visible jobs`};async function load(){try{const r=await fetch('/dashboard/data',{cache:'no-store'});if(!r.ok)throw Error('unavailable');render(await r.json())}catch{q('#stamp').textContent='Dashboard data is temporarily unavailable.'}}load();setInterval(load,5000);</script></body></html>"""
 
 
 def token_identity(config, header):
@@ -266,7 +368,7 @@ def make_handler(queue, config):
                 return self.send_html(operator_dashboard_html())
             if path == "/dashboard/data":
                 if not self.is_local_operator(): return self.send_json(404, {"error": "not found"})
-                return self.send_json(200, {"jobs": [public_job(job) for job in queue.list()]})
+                return self.send_json(200, operator_dashboard_data(queue.list()))
             if self.path == "/v1/health": return self.send_json(200, {"ok": True, "queue": len(queue.list())})
             client = self.require_client()
             if not client: return

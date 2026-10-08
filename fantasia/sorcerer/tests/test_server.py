@@ -3,18 +3,20 @@ import hashlib
 import http.client
 import io
 import json
+import sqlite3
 import sys
 import tempfile
 import threading
 import time
 import unittest
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from job_types import JOB_TYPES, JobType
-from server import Queue, Worker, make_handler
+from server import Queue, Worker, make_handler, operator_metrics
 from http.server import ThreadingHTTPServer
 
 
@@ -126,6 +128,25 @@ class SorcererServerTest(unittest.TestCase):
         conn.close()
         self.assertEqual(response.status, 200)
         self.assertIn("jobs", data)
+        self.assertIn("metrics", data)
+        self.assertNotIn("input_zip", json.dumps(data))
+
+    def test_operator_metrics_aggregate_without_private_job_fields(self):
+        now = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
+        jobs = [
+            {"id": "one", "type": "test", "status": "completed", "created_at": "2026-10-08T11:00:00+00:00", "started_at": "2026-10-08T11:10:00+00:00", "finished_at": "2026-10-08T11:30:00+00:00", "message": "Completed; published to UBox", "input_zip": "private.zip"},
+            {"id": "two", "type": "test", "status": "failed", "created_at": "2026-10-08T11:20:00+00:00", "started_at": "2026-10-08T11:25:00+00:00", "finished_at": "2026-10-08T11:35:00+00:00", "message": "Failed"},
+            {"id": "three", "type": "other", "status": "running", "created_at": "2026-10-08T11:40:00+00:00", "started_at": "2026-10-08T11:45:00+00:00", "progress": json.dumps({"message": "Converting"}), "priority": 50},
+            {"id": "four", "type": "other", "status": "queued", "created_at": "2026-10-08T11:50:00+00:00"},
+        ]
+        metrics = operator_metrics(jobs, now=now)
+        self.assertEqual(metrics["counts"], {"queued": 1, "running": 1, "completed": 1, "failed": 1, "cancelled": 0})
+        self.assertEqual(metrics["timing"]["average_wait_seconds"], 400)
+        self.assertEqual(metrics["timing"]["average_runtime_seconds"], 900)
+        self.assertEqual(metrics["timing"]["completion_rate"], 50)
+        self.assertEqual(metrics["publishing"]["published"], 1)
+        self.assertEqual(metrics["active"]["stage"], "Converting")
+        self.assertNotIn("input_zip", json.dumps(metrics))
 
     def test_rejects_archive_that_expands_beyond_configured_limit(self):
         self.config["max_extracted_bytes"] = 5
@@ -180,6 +201,36 @@ class SorcererServerTest(unittest.TestCase):
         self.assertEqual(cancelled["status"], "cancelled")
         requeued = self.queue.requeue(low["id"], "test-client")
         self.assertEqual(requeued["status"], "queued")
+        self.assertEqual(requeued["attempt"], 2)
+
+    def test_requeue_preserves_completed_result_as_prior_attempt(self):
+        self.worker.stop_event.set(); self.worker.join(2)
+        job = self.queue.create("test-client", "test", 50, {}, self.root / "input.zip")
+        result = self.root / "jobs" / job["id"] / "result.zip"
+        result.parent.mkdir(parents=True)
+        result.write_bytes(b"original result")
+        self.queue.update(job["id"], status="completed", result_zip=str(result), finished_at="2026-10-08T12:00:00+00:00")
+        requeued = self.queue.requeue(job["id"], "test-client")
+        preserved = result.with_name("result-attempt-1.zip")
+        self.assertEqual(requeued["attempt"], 2)
+        self.assertIsNone(requeued["result_zip"])
+        self.assertEqual(preserved.read_bytes(), b"original result")
+        self.assertEqual(json.loads(requeued["previous_result_zips"]), [str(preserved)])
+
+    def test_queue_migrates_existing_database_for_attempt_history(self):
+        legacy = self.root / "legacy"
+        legacy.mkdir()
+        db = sqlite3.connect(legacy / "queue.sqlite3")
+        db.execute("""CREATE TABLE jobs (
+            id TEXT PRIMARY KEY, client TEXT NOT NULL, type TEXT NOT NULL,
+            priority INTEGER NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL,
+            started_at TEXT, finished_at TEXT, metadata TEXT NOT NULL, message TEXT,
+            progress TEXT, input_zip TEXT NOT NULL, result_zip TEXT)""")
+        db.execute("INSERT INTO jobs VALUES ('old', 'test-client', 'test', 50, 'completed', '2026-10-08T10:00:00+00:00', NULL, NULL, '{}', 'Completed', '{}', 'input.zip', NULL)")
+        db.commit(); db.close()
+        migrated = Queue(legacy).get("old")
+        self.assertEqual(migrated["attempt"], 1)
+        self.assertEqual(migrated["previous_result_zips"], "[]")
 
     def test_cancel_and_requeue_endpoints(self):
         self.worker.stop_event.set(); self.worker.join(2)

@@ -30,7 +30,7 @@ export default function MagicPage() {
           <li><b>1</b><div><h3>Download the release</h3><p>Download the Magic ZIP, extract it to a folder you can write to, then run the portable executable inside. No separate Python installation is required.</p></div></li>
           <li><b>2</b><div><h3>Choose explicit folders</h3><p>Select the source and output folders for every run. Magic preserves source files and puts local results only in the output folder you choose.</p></div></li>
           <li><b>3</b><div><h3>Configure remote access per run</h3><p>For Sorcerer work, enter the approved LAN URL and the token issued to your device. Magic stores the token in its user preferences; never paste it into documents, job metadata, or source code.</p></div></li>
-          <li><b>4</b><div><h3>Recover safely</h3><p>Use the queue panel to refresh, cancel, or requeue only your own remote jobs. If a direct download is interrupted, reopen Magic and use the same selected output folder.</p></div></li>
+          <li><b>4</b><div><h3>Recover safely</h3><p>Use the queue panel to copy a job ID, refresh its state, cancel only your own job, or requeue a terminal job as its next attempt. Magic preserves completed archives before a newer attempt replaces the current result.</p></div></li>
         </ol>
       </section>
       <section className="content-section">
@@ -39,7 +39,7 @@ export default function MagicPage() {
           <li><b>1</b><div><h3>Open Magic</h3><p>Choose the workflow that matches the files you need to process. Select a source folder and an output folder; Magic leaves the source files unchanged.</p></div></li>
           <li><b>2</b><div><h3>Review the run details</h3><p>Use the output folder and file name shown in the dialog. Confirm review checkpoints before Magic continues a local workflow.</p></div></li>
           <li><b>3</b><div><h3>Choose local or Sorcerer</h3><p>For a small batch, run locally. For a larger batch, select <strong>Send to Sorcerer server</strong>.</p></div></li>
-          <li><b>4</b><div><h3>Collect the result</h3><p>Magic shows server-side progress, then downloads and extracts the completed result into the output folder you selected.</p></div></li>
+          <li><b>4</b><div><h3>Collect the result</h3><p>Magic shows server-side progress, then downloads and extracts the completed result into the output folder you selected. Copy the visible job ID before contacting support; never include your remote token.</p></div></li>
         </ol>
       </section>
       <section className="live-section">

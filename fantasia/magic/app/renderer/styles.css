@@ -76,6 +76,8 @@ body { display: flex; flex-direction: column; }
 .job-status--queued { color: var(--warning); }
 .job-actions { display: flex; justify-content: flex-end; gap: 6px; }
 .job-actions .btn { padding: 5px 9px; font-size: 11px; }
+.job-id { display: block; margin-top: 4px; padding: 0; border: 0; background: none; color: var(--text-sec); cursor: pointer; font: 11px ui-monospace, SFMono-Regular, Consolas, monospace; text-align: left; }
+.job-id:hover, .job-id:focus-visible { color: var(--accent); text-decoration: underline; outline: none; }
 
 .scripts-table { width: 100%; border-collapse: collapse; }
 

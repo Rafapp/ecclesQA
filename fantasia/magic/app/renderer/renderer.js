@@ -265,6 +265,22 @@ async function refreshSorcererOverview() {
       const row = document.createElement("tr");
       const jobCell = document.createElement("td");
       jobCell.textContent = `${job.type} · ${job.id.slice(0, 8)}`;
+      const workflow = document.createElement("strong");
+      workflow.textContent = `${job.type} (attempt ${job.attempt || 1})`;
+      const jobId = document.createElement("button");
+      jobId.type = "button";
+      jobId.className = "job-id";
+      jobId.textContent = job.id;
+      jobId.title = "Copy job ID";
+      jobId.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(job.id);
+          detail.textContent = `Copied job ID ${job.id}.`;
+        } catch {
+          detail.textContent = "Select and copy the job ID manually.";
+        }
+      });
+      jobCell.replaceChildren(workflow, jobId);
       const statusCell = document.createElement("td");
       const status = document.createElement("span");
       status.className = `job-status job-status--${String(job.status).replace(/[^a-z]/g, "")}`;
@@ -280,8 +296,12 @@ async function refreshSorcererOverview() {
         cancel.type = "button";
         cancel.textContent = "Cancel";
         cancel.addEventListener("click", async () => {
+          if (!confirm(`Request cancellation for job ${job.id}? A running workflow stops at the next safe process boundary.`)) return;
           cancel.disabled = true;
-          try { await window.magic.cancelSorcerer({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token, jobId: job.id }); }
+          try {
+            await window.magic.cancelSorcerer({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token, jobId: job.id });
+            detail.textContent = `Cancellation requested for ${job.id}.`;
+          }
           catch (error) { alert(`Could not cancel job: ${error.message}`); }
           refreshSorcererOverview();
         });
@@ -290,10 +310,14 @@ async function refreshSorcererOverview() {
         const requeue = document.createElement("button");
         requeue.className = "btn btn--secondary";
         requeue.type = "button";
-        requeue.textContent = "Requeue";
+        requeue.textContent = "Requeue as next attempt";
         requeue.addEventListener("click", async () => {
+          if (!confirm(`Requeue job ${job.id} as a new attempt? The original input remains available. Completed result archives are preserved before the new attempt replaces the current result.`)) return;
           requeue.disabled = true;
-          try { await window.magic.requeueSorcerer({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token, jobId: job.id }); }
+          try {
+            await window.magic.requeueSorcerer({ serverUrl: sorcererPrefs.serverUrl, token: sorcererPrefs.token, jobId: job.id });
+            detail.textContent = `Requeued ${job.id} as its next attempt.`;
+          }
           catch (error) { alert(`Could not requeue job: ${error.message}`); }
           refreshSorcererOverview();
         });
