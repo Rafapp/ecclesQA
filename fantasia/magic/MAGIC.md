@@ -91,11 +91,14 @@ Run the following from `fantasia/magic`:
 
 ```powershell
 npm run release:verify
+npm run release:verify -- --online
 npm run package
 ```
 
 Inspect the resulting ZIP outside Git, verify that it contains the expected
 `magic-v<version>-portable.exe`, and record its SHA-256 in the release handoff.
+The `--online` check is for an already-published release; it confirms that the
+catalog's exact asset URL resolves after publication.
 Only then create a new matching GitHub release and attach that exact ZIP. Never
 overwrite a published asset: rollback means directing users to the previous
 signed-off release, not replacing its bytes. Update and deploy the protected
