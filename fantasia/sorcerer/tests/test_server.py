@@ -240,6 +240,18 @@ class SorcererServerTest(unittest.TestCase):
         self.assertEqual(migrated["attempt"], 1)
         self.assertEqual(migrated["previous_result_zips"], "[]")
 
+    def test_running_job_recovers_to_queue_after_server_restart(self):
+        job = self.queue.create("test-client", "test", 50, {}, self.root / "input.zip")
+        claimed = self.queue.next()
+        self.assertEqual(claimed["id"], job["id"])
+        self.assertEqual(claimed["status"], "running")
+
+        recovered = Queue(self.root)
+        restored = recovered.get(job["id"])
+        self.assertEqual(restored["status"], "queued")
+        self.assertEqual(restored["message"], "Recovered after server restart")
+        self.assertEqual(recovered.next()["id"], job["id"])
+
     def test_cancel_and_requeue_endpoints(self):
         self.worker.stop_event.set(); self.worker.join(2)
         job = self.queue.create("test-client", "test", 50, {}, self.root / "endpoint.zip")

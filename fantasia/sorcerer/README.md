@@ -56,6 +56,15 @@ workflow creates a newer current result. Published result filenames include the
 attempt number after the first attempt, preventing a retry from replacing a
 previously published archive.
 
+Each submit action intentionally creates a distinct job; Sorcerer does not
+infer that two archives are equivalent. If Magic appears to pause after an
+accepted submission, use its active-run view or authenticated queue panel
+before submitting again. After a server restart, any job that was marked
+running is returned to `queued` with a recovery message and resumes under the
+normal single-worker ordering. Do not bulk-reset records: cancellation,
+requeue, recovery, and retention are separate operations with different
+safeguards.
+
 To keep the server available after this PC restarts, run
 `install-logon-task.cmd` once from the server user's interactive Windows
 session. Office and Acrobat automation must run in that interactive session,
