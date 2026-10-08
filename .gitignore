@@ -32,6 +32,9 @@ downloads/
 # VS Code (ignore everything)
 .vscode/
 
+# Per-workspace Unsnooze runtime state
+.unsnooze/
+
 # OS junk
 .DS_Store
 Thumbs.db
